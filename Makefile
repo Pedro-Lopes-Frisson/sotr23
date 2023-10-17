@@ -10,7 +10,7 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
-all: webCamCapture imageViewer
+all: webCamCapture imageViewer cab
 .PHONY: all
 
 # Generate application
@@ -19,6 +19,11 @@ webCamCapture: webCamCapture.c
 	
 imageViewer: imageViewer.c  
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS) 
+
+cab: cab.c cab.h
+	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
+
+
 
 .PHONY: clean 
 

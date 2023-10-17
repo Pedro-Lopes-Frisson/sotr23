@@ -4,26 +4,20 @@
  *
  *
  * */
-#include <bool.h>
 
-static int max_buff;
-static int dim_buff;
-static struct CAB_BUFFER *mrb; // most recent buffer
-static char cab_id[50]
+#define N_TASKS 10
+#define DIM_X 640
+#define DIM_Y 480
+#define MAX_CHARS 50
+#define IMGBYTESPERPIXEL                                                       \
+  4 /* Number of bytes per pixel. Allowed formats are RGB888, RGBA8888 and */
 
-/** \brief locking flag which warrants mutual exclusion inside the monitor */
-static pthread_mutex_t accessCR = PTHREAD_MUTEX_INITIALIZER;
-
-/** \brief flag which warrants that the data transfer region is initialized exactly once */
-static pthread_once_t init = PTHREAD_ONCE_INIT;
-
-
-struct CAB_BUFFER{
-	struct CAB_BUFFER *next; // pointer to the next buffer
-	int use = 0;
-	unsigned char **data;
+struct CAB_BUFFER {
+  struct CAB_BUFFER *next; // pointer to the next buffer
+  int use;
+  unsigned char *img;
 };
- 
+
 /**
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.
@@ -34,32 +28,32 @@ void initialization(void);
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension
  * */
-bool open(const char *cab_name, const int max_buffers, const int dim_buff);
-
+int open(const char *cab_name, const int max_buffers, const int dim_x,
+         const int dim_y);
 
 /*
  * destroy cab
  *
  * */
-bool close(void);
+int close(void);
 
 /*
  * reserve a free buffer
  *
  * */
-struct CAB_BUFFER * reserve(void);
+struct CAB_BUFFER *reserve(void);
 
 /*
  * save data to buffer
  *
  * */
-void * putmes(struct CAB_BUFFER * c, unsigned char *data);
+void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size);
 
 /*
  * get data from buffer
  *
  * */
-void * getmes(void);
+struct CAB_BUFFER *getmes(void);
 
 /*
  *	release a buffer
