@@ -10,6 +10,8 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
+OBJFILES = cab.o imageViewer.o
+
 all: webCamCapture cab imageViewer main
 .PHONY: all
 
@@ -18,7 +20,7 @@ webCamCapture: webCamCapture.c
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS)
 
 main: main.c cab.o imageViewer.o
-	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS) cab.o imageViewer.o -pthread
+	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ cab.o imageViewer.o $(LIBS) -pthread
 
 cab: src/cab.c include/cab.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
@@ -31,4 +33,4 @@ imageViewer: src/imageViewer.c include/imageViewer.h
 clean:
 	rm -f *.o 
 	rm webCamCapture
-	
+	rm main

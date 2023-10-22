@@ -62,13 +62,38 @@ int fd=0; /* File descriptor for shared memory */
 void * shMemPtr = NULL; 		/* Pointer top shered memory region */
 sem_t * newDataSemAddr = NULL;	/* Pointer to semaphore */
 
+
+/* **************************************************
+ * help() function
+*****************************************************/
+void help(const char *procname) {
+    printf("Usage: %s [OPTIONS]\n", procname);
+    printf("\t -h : print this help dialog\n");
+    printf("\t -x : specify width in pixels of the images being captured by some "
+            "device.\n");
+    printf("\t -y : specify height in pixels of the images being captured by "
+            "some device.\n");
+    printf("\t -n : specify number of tasks that shall be created. This is also "
+            "the number of buffers - 1 in the CAB implementation.\n");
+    printf("\t \t [-m]: shared memory name, in the form /string with no spaces. "
+            "Should start with \"/\" and have no further \"/\"\n");
+    printf("\t \t [-s]: semaphore name, in the form string with no spaces. \n");
+}
+
 /* **************************************************
  * main() function
 *****************************************************/
 int main(int argc, char* argv[]) {
     int opt;
     int width, height, n; /* n is the number of tasks */
-    while ((opt = getopt(argc, argv, "hx:y:n:")) != -1) {
+
+    // if no arguments are passed, print help and exit
+    if (argc == 1) {
+        help(argv[0]);
+        return -1;
+    }
+
+    while ((opt = getopt(argc, argv, "hx:y:n:m:s")) != -1) {
         switch (opt) {
             case 'x':
                 width = atoi(optarg);
@@ -96,18 +121,31 @@ int main(int argc, char* argv[]) {
                     return -1;
                 }
                 break;
+            case 'm':
+                printf("optarg: %s\n", optarg);
+				strcpy(shMemName, optarg);
+				shMemActiveFlag = 1;
+				break;
+            case 's':
+                printf("optarg: %s\n", optarg);
+				strcpy(newDataSemName, optarg);
+				newDataSemActiveFlag = 1;
+				break;
             case 'h':
             default:
                 help(argv[0]);
                 return -1;
         }
     }
+    printf("width: %d, height: %d, n: %d\n", width, height, n);
 
     // create CAB structure
-    openCab(appName, n, width, height);
+    openCab(appName, n+1, width, height);
+    printf("CAB created with %d buffers\n\r", n+1);
 
     // initialize image displayer
     display = initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
+    printf("Image displayer initialized\n\r");
 
     shMemSize = width * height * IMGBYTESPERPIXEL;
     unsigned char * pixels = malloc(shMemSize);
@@ -119,6 +157,7 @@ int main(int argc, char* argv[]) {
 		printf("[shared memory reservation] Can't get file descriptor...\n\r");
 		return -1;
 	}
+    printf("Shared memory file descriptor obtained\n\r");
 
     /* Get the pointer */
 	shMemPtr = mmap(NULL,       /* no hints on address */
@@ -132,6 +171,7 @@ int main(int argc, char* argv[]) {
 		printf("[shared memory reservation] mmap failed... \n\r");
 		return -1;
 	}
+    printf("Shared memory pointer obtained\n\r");
 
     /* Create semaphore */
 	newDataSemAddr = sem_open(newDataSemName, 	/* semaphore name */
@@ -143,17 +183,21 @@ int main(int argc, char* argv[]) {
 		printf("[semaphore creation] Error creating semaphore \n\r");
 		return -1;
 	}
+    printf("Semaphore created\n\r");
 
     // start copying images from the shared memory to the cab
     int frameCounter = 0;
     while (1) {
         // wait for new image
         if (!sem_wait(newDataSemAddr)) { /* sem_wait returns 0 on success */
+            printf("New image received\n\r");
+
             // reserve a buffer for writing
             struct CAB_BUFFER *cab = reserve();
 
             // save image to buffer
             putmes(cab, shMemPtr, shMemSize);
+            printf("Image saved to buffer\n\r");
 
             // release buffer
             unget(cab);
@@ -177,26 +221,13 @@ int main(int argc, char* argv[]) {
 }
 
 /* **************************************************
- * help() function
-*****************************************************/
-void help(const char *procname) {
-    printf("Usage: %s [OPTIONS]\n", procname);
-    printf("\t -h : print this help dialog\n");
-    printf("\t -x : specify width in pixels of the images being captured by some "
-            "device.\n");
-    printf("\t -y : specify height in pixels of the images being captured by "
-            "some device.\n");
-    printf("\t -n : specify number of tasks that shall be created. This is also "
-            "the number of buffers - 1 in the CAB implementation.\n");
-}
-
-/* **************************************************
  * callTasks() function
 *****************************************************/
 void callTasks(struct CAB_BUFFER *cab, int frameCounter) {
     // first we call the tasks that should be executed every frame
     // display image
     displayImage(display, cab);
+    printf("Image displayed\n\r");
 
     if (frameCounter % 2 == 0) {
         // call task 1
