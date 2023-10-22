@@ -28,14 +28,13 @@ void initialization(void);
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension
  * */
-int open(const char *cab_name, const int max_buffers, const int dim_x,
-         const int dim_y);
+int openCab(const char *cab_name, const int max_buffers, const int dim_x, const int dim_y);
 
 /*
  * destroy cab
  *
  * */
-int close(void);
+int closeCab(void);
 
 /*
  * reserve a free buffer

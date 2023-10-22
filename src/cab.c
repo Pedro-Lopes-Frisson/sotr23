@@ -1,4 +1,4 @@
-#include "cab.h"
+#include "../include/cab.h"
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -37,8 +37,7 @@ void initialization(void) {
   pthread_cond_init(&workers_ready, NULL);
 }
 
-int open(const char *cab_name, const int max_buffers, const int dim_x,
-         const int dim_y) {
+int openCab(const char *cab_name, const int max_buffers, const int dim_x, const int dim_y) {
 
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
@@ -80,7 +79,7 @@ int open(const char *cab_name, const int max_buffers, const int dim_x,
   }
 }
 
-int close(void) {
+int closeCab(void) {
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
