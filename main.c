@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    while ((opt = getopt(argc, argv, "hx:y:n:m:s")) != -1) {
+    while ((opt = getopt(argc, argv, "hx:y:n:m:s:")) != -1) {
         switch (opt) {
             case 'x':
                 width = atoi(optarg);
@@ -122,12 +122,12 @@ int main(int argc, char* argv[]) {
                 }
                 break;
             case 'm':
-                printf("optarg: %s\n", optarg);
+                printf("optarg -m: %s\n", optarg);
 				strcpy(shMemName, optarg);
 				shMemActiveFlag = 1;
 				break;
             case 's':
-                printf("optarg: %s\n", optarg);
+                printf("optarg -s: %s\n", optarg);
 				strcpy(newDataSemName, optarg);
 				newDataSemActiveFlag = 1;
 				break;
@@ -193,14 +193,12 @@ int main(int argc, char* argv[]) {
             printf("New image received\n\r");
 
             // reserve a buffer for writing
-            struct CAB_BUFFER *cab = reserve();
+            struct CAB_BUFFER *cab = (struct CAB_BUFFER *) reserve();
+            printf("Buffer reserved\n\r");
 
             // save image to buffer
             putmes(cab, shMemPtr, shMemSize);
             printf("Image saved to buffer\n\r");
-
-            // release buffer
-            unget(cab);
 
             // increment frame counter
             frameCounter++;

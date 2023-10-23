@@ -53,7 +53,7 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
   buffers =
       (struct CAB_BUFFER *)malloc(max_buffers * sizeof(struct CAB_BUFFER));
 
-  if (buffers != 0) {
+  if (buffers == NULL) {
     fprintf(stderr, "Structure could not be allocated!");
     return EXIT_FAILURE;
   }
@@ -62,6 +62,11 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
     // allocate data buffer of each CAB_BUFFER
     buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
+    if (buffers[i].img == NULL) {
+      fprintf(stderr, "Structure could not be allocated!");
+      return EXIT_FAILURE;
+    }
+    printf("%p\n", &(buffers[i]));
     // set use to 0
     buffers[i].use = 0;
     // set next buffer this is cyclic
@@ -77,6 +82,8 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
+  return EXIT_SUCCESS;
 }
 
 int closeCab(void) {
@@ -96,6 +103,8 @@ int closeCab(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
+  return EXIT_SUCCESS;
 }
 
 void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
@@ -105,8 +114,12 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-
+  printf("putmes\n\r");
   if (c->use == 0) {
+
+    printf("putmes: use == 0\n\r");
+    printf("putmes: c->img: %p\n\r", c->img);
+
     memcpy(c->img, data, size); // copy data to CAB_BUFFER
     mrb->next = free_b;
     free_b = mrb;
@@ -168,18 +181,20 @@ void unget(struct CAB_BUFFER *buffer) {
 }
 
 struct CAB_BUFFER *reserve(void) {
+  printf("Reserving buffer\n\r");
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  printf("Buffer reserved\n\r");
   struct CAB_BUFFER * p;
   p = free_b;
   free_b = p->next;
-  return p;
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  return p;
 }
