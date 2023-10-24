@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <pthread.h>
 
 /* Custom includes */
 #include "include/cab.h" // For cab struct
@@ -62,7 +63,8 @@ int fd=0; /* File descriptor for shared memory */
 void * shMemPtr = NULL; 		/* Pointer top shered memory region */
 sem_t * newDataSemAddr = NULL;	/* Pointer to semaphore */
 
-
+pthread_t tIdWork[100];
+int tid[100];
 /* **************************************************
  * help() function
 *****************************************************/
@@ -98,7 +100,7 @@ int main(int argc, char* argv[]) {
             case 'x':
                 width = atoi(optarg);
                 // TODO: change this to constants using #define min and max
-                if (width < 640 || width > 1920) {
+                if (width < 640 || width > 5000) {
                     printf("Invalid x value.\n");
                     help(argv[0]);
                     return -1;
@@ -107,7 +109,7 @@ int main(int argc, char* argv[]) {
             case 'y':
                 height = atoi(optarg);
                 // TODO: change this to constants using #define min and max
-                if (height < 480 || height > 1080) {
+                if (height < 480 || height > 5000) {
                     printf("Invalid y value.\n");
                     help(argv[0]);
                     return -1;
@@ -219,6 +221,10 @@ int main(int argc, char* argv[]) {
   	return SUCCESS;
 }
 
+void display_image(struct CAB_BUFFER * c){
+
+}
+
 /* **************************************************
  * callTasks() function
 *****************************************************/
@@ -229,7 +235,6 @@ void callTasks(struct CAB_BUFFER *cab, int frameCounter) {
     printf("Image displayed\n\r");
 
     if (frameCounter % 2 == 0) {
-        // call task 1
-        // task1(cab);
+        pthread_create(&tIdWork[0], NULL, display_image, &tid[0]);
     }
 }
