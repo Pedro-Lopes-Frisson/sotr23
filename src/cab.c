@@ -57,6 +57,7 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
     fprintf(stderr, "Structure could not be allocated!");
     return EXIT_FAILURE;
   }
+  printf("%p\n", &buffers);
 
   for (int i = 0; i < max_buffers; i++) {
     // allocate data buffer of each CAB_BUFFER
@@ -120,7 +121,7 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
     printf("putmes: use == 0\n\r");
     printf("putmes: c->img: %p\n\r", c->img);
 
-    memcpy(c->img, data, size); // copy data to CAB_BUFFER
+    //memcpy(c->img, data, size); // copy data to CAB_BUFFER
     mrb->next = free_b;
     free_b = mrb;
   }
@@ -189,6 +190,7 @@ struct CAB_BUFFER *reserve(void) {
   }
   printf("Buffer reserved\n\r");
   struct CAB_BUFFER * p;
+  printf("OLA\n");
   p = free_b;
   free_b = p->next;
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */

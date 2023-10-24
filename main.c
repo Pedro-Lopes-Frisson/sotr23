@@ -195,6 +195,7 @@ int main(int argc, char* argv[]) {
             // reserve a buffer for writing
             struct CAB_BUFFER *cab = (struct CAB_BUFFER *) reserve();
             printf("Buffer reserved\n\r");
+            printf("%p\n", cab);
 
             // save image to buffer
             putmes(cab, shMemPtr, shMemSize);
