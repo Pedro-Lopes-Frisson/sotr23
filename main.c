@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+/* SDL includes */
+#include <SDL2/SDL.h>
 /* Custom includes */
 #include "include/cab.h" // For cab struct
 #include "include/imageViewer.h" // For sdl image viewer
@@ -41,7 +43,8 @@
 /* Function prototypes */
 int main(int argc, char **argv);
 void help(const char *procname);
-void callTasks(struct CAB_BUFFER *cab, int frameCounter);
+void callTasks(int frameCounter);
+void display_image(void);
 
 /* Global variables */
 unsigned char appName[]="imageDisplay"; /* Application name*/
@@ -65,6 +68,12 @@ sem_t * newDataSemAddr = NULL;	/* Pointer to semaphore */
 
 pthread_t tIdWork[100];
 int tid[100];
+
+SDL_Event event;
+SDL_Window * window;
+SDL_Renderer * renderer;
+SDL_Texture * screen_texture;
+
 /* **************************************************
  * help() function
 *****************************************************/
@@ -81,13 +90,13 @@ void help(const char *procname) {
             "Should start with \"/\" and have no further \"/\"\n");
     printf("\t \t [-s]: semaphore name, in the form string with no spaces. \n");
 }
+int width, height, n; /* n is the number of tasks */
 
 /* **************************************************
  * main() function
 *****************************************************/
 int main(int argc, char* argv[]) {
     int opt;
-    int width, height, n; /* n is the number of tasks */
 
     // if no arguments are passed, print help and exit
     if (argc == 1) {
@@ -146,8 +155,30 @@ int main(int argc, char* argv[]) {
     printf("CAB created with %d buffers\n\r", n+1);
 
     // initialize image displayer
-    display = initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
+    //display = initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
     printf("Image displayer initialized\n\r");
+    
+    SDL_Init(SDL_INIT_VIDEO);
+
+    window = SDL_CreateWindow(appName,
+    SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    width, height,SDL_WINDOW_RESIZABLE);
+
+    renderer = SDL_CreateRenderer(window,
+                    -1, SDL_RENDERER_PRESENTVSYNC);
+
+    /* Limit the window size so that it cannot */
+    /* be smaller than teh webcam image size */
+    SDL_SetWindowMinimumSize(window, width, height);
+
+    SDL_RenderSetLogicalSize(renderer, width, height);
+    SDL_RenderSetIntegerScale(renderer, 1);
+
+    screen_texture = SDL_CreateTexture(renderer,
+		SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING,
+		width, height);
+    renderer = SDL_CreateRenderer(window,
+			-1, SDL_RENDERER_PRESENTVSYNC);
 
     shMemSize = width * height * IMGBYTESPERPIXEL;
     unsigned char * pixels = malloc(shMemSize);
@@ -207,7 +238,7 @@ int main(int argc, char* argv[]) {
             frameCounter++;
 
             // check which tasks should be executed
-            callTasks(cab, frameCounter);
+            callTasks( frameCounter);
         } else {
 			printf("[imageViewer] Error on sem_wait\n\r");
 		}
@@ -221,20 +252,29 @@ int main(int argc, char* argv[]) {
   	return SUCCESS;
 }
 
-void display_image(struct CAB_BUFFER * c){
-
+void display_image(void){
+    struct CAB_BUFFER * c = getmes();
+    printf("GetMes\n");
+    unsigned char *pixels = malloc(MAX_WIDTH*MAX_HEIGHT*IMGBYTESPERPIXEL);
+    for (int i = 0; i < 100; i++){
+        printf("%uc\n", c->img[i]);
+    }
+    memcpy(pixels, c->img, width*height*IMGBYTESPERPIXEL);
+    SDL_RenderClear(renderer);
+    SDL_UpdateTexture(screen_texture, NULL, pixels, height* width * IMGBYTESPERPIXEL );
+    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+    SDL_RenderPresent(renderer);			
 }
 
 /* **************************************************
  * callTasks() function
 *****************************************************/
-void callTasks(struct CAB_BUFFER *cab, int frameCounter) {
+void callTasks(int frameCounter) {
     // first we call the tasks that should be executed every frame
     // display image
-    displayImage(display, cab);
     printf("Image displayed\n\r");
 
-    if (frameCounter % 2 == 0) {
-        pthread_create(&tIdWork[0], NULL, display_image, &tid[0]);
+    if (frameCounter  == 1) {
+        pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
     }
 }

@@ -141,12 +141,12 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
 }
 
 struct CAB_BUFFER *getmes(void) {
-  printf("getMes\n");
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  printf("getMes\n");
   // wait for written buffers
   if ((pthread_cond_wait(&wait_for_written_buffers,&accessCR)) != 0) {
     perror("Signal failed! wait_for_written_buffers"); /* save error in errno */
@@ -189,9 +189,9 @@ struct CAB_BUFFER *reserve(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  printf("Buffer reserved\n\r");
+  //printf("Buffer reserved\n\r");
   struct CAB_BUFFER * p;
-  printf("OLA\n");
+  //printf("OLA\n");
   p = free_b;
   free_b = p->next;
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */

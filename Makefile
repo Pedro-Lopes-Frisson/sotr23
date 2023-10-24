@@ -3,7 +3,7 @@ LDIRS = -L/usr/local/lib
 
 # Use script to get SDL2 flags (recommended for portability)
 SDL2_CONFIG = sdl2-config
-CFLAGS = $(shell $(SDL2_CONFIG) --cflags)
+CFLAGS = $(shell $(SDL2_CONFIG) --cflags) -g
 LIBS = $(shell $(SDL2_CONFIG) --libs)
 
 # Add other compilation and linking flags if necessary
