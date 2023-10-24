@@ -61,13 +61,14 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
 
   for (int i = 0; i < max_buffers; i++) {
     // allocate data buffer of each CAB_BUFFER
+    printf("dim_x %d, dim_y %d\n", dim_x, dim_y);
     buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
     if (buffers[i].img == NULL) {
       fprintf(stderr, "Structure could not be allocated!");
       return EXIT_FAILURE;
     }
-    printf("%p\n", &(buffers[i]));
+    printf("buffer[%d]%p \t img %p\n",i, &(buffers[i]), buffers[i].img);
     // set use to 0
     buffers[i].use = 0;
     // set next buffer this is cyclic
@@ -118,14 +119,14 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
   printf("putmes\n\r");
   if (c->use == 0) {
 
+    printf("Buffer %p\n", c );
     printf("putmes: use == 0\n\r");
     printf("putmes: c->img: %p\n\r", c->img);
-
+    mrb = c;
     //memcpy(c->img, data, size); // copy data to CAB_BUFFER
     mrb->next = free_b;
     free_b = mrb;
   }
-  mrb = c; // c is now te most recent buffer
   // signal tasks that they can now read data
   if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
     perror("Signal failed! wait_for_work"); /* save error in errno */
@@ -140,14 +141,14 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
 }
 
 struct CAB_BUFFER *getmes(void) {
-
+  printf("getMes\n");
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
   // wait for written buffers
-  if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
+  if ((pthread_cond_wait(&wait_for_written_buffers,&accessCR)) != 0) {
     perror("Signal failed! wait_for_written_buffers"); /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
