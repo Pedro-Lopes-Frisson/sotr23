@@ -50,8 +50,8 @@ struct IMAGE_DISPLAY *initDisplayer(int height, int width, int btspp, char *appN
 }
 
 void displayImage(struct IMAGE_DISPLAY *display, struct CAB_BUFFER *cab) {
-    SDL_UpdateTexture(display->texture, NULL, cab->img, display->width * display->btspp);
     SDL_RenderClear(display->renderer);
+    SDL_UpdateTexture(display->texture, NULL, cab->img, display->width * display->btspp);
     SDL_RenderCopy(display->renderer, display->texture, NULL, NULL);
     SDL_RenderPresent(display->renderer);
 }

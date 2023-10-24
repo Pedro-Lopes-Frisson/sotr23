@@ -62,8 +62,9 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
   for (int i = 0; i < max_buffers; i++) {
     // allocate data buffer of each CAB_BUFFER
     printf("dim_x %d, dim_y %d\n", dim_x, dim_y);
-    buffers[i].img = (unsigned char *)malloc(3000 * dim_y * IMGBYTESPERPIXEL *
+    buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
+    printf("%d\n", dim_x);
     if (buffers[i].img == NULL) {
       fprintf(stderr, "Structure could not be allocated!");
       return EXIT_FAILURE;
