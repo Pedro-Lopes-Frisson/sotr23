@@ -227,13 +227,17 @@ int main(int argc, char* argv[]) {
 
             // reserve a buffer for writing
             struct CAB_BUFFER *cab = (struct CAB_BUFFER *) reserve();
-            printf("Buffer reserved\n\r");
+            if( cab == NULL){
+                continue;
+            }
+            printf("Buffer reserved for frame %d\n\r", frameCounter);
             printf("%p\n", cab);
 
             // save image to buffer
             putmes(cab, shMemPtr, shMemSize);
             printf("Image saved to buffer\n\r");
-
+            unget(cab);
+            printf("Unget buffer\n\r");
             // increment frame counter
             frameCounter++;
 
@@ -257,13 +261,14 @@ void display_image(void){
     printf("GetMes\n");
     unsigned char *pixels = malloc(MAX_WIDTH*MAX_HEIGHT*IMGBYTESPERPIXEL);
     for (int i = 0; i < 100; i++){
-        printf("%uc\n", c->img[i]);
+        printf("%u\n", c->img[i]);
     }
     memcpy(pixels, c->img, width*height*IMGBYTESPERPIXEL);
     SDL_RenderClear(renderer);
-    SDL_UpdateTexture(screen_texture, NULL, pixels, height* width * IMGBYTESPERPIXEL );
+    SDL_UpdateTexture(screen_texture, NULL, c->img, height* width * IMGBYTESPERPIXEL );
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);			
+    unget(c);
 }
 
 /* **************************************************

@@ -62,7 +62,7 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
   for (int i = 0; i < max_buffers; i++) {
     // allocate data buffer of each CAB_BUFFER
     printf("dim_x %d, dim_y %d\n", dim_x, dim_y);
-    buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
+    buffers[i].img = (unsigned char *)malloc(3000 * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
     if (buffers[i].img == NULL) {
       fprintf(stderr, "Structure could not be allocated!");
@@ -117,17 +117,11 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
     pthread_exit(&status);
   }
   printf("putmes\n\r");
-  if (c->use == 0) {
-
-    printf("Buffer %p\n", c );
-    printf("putmes: use == 0\n\r");
-    printf("putmes: c->img: %p\n\r", c->img);
-    mrb = c;
-    //memcpy(c->img, data, size); // copy data to CAB_BUFFER
-    mrb->next = free_b;
-    free_b = mrb;
-  }
-  // signal tasks that they can now read data
+  memcpy(c->img, data, size);
+  printf("Buffer %p\n", c );
+  printf("putmes: use == 0\n\r");
+  printf("putmes: c->img: %p\n\r", c->img);
+  mrb = c;
   if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
     perror("Signal failed! wait_for_work"); /* save error in errno */
     int status = EXIT_FAILURE;
@@ -171,7 +165,6 @@ void unget(struct CAB_BUFFER *buffer) {
 
   buffer->use--;
   if (buffer->use == 0 && buffer != mrb) {
-    buffer->next = free_b;
     free_b = buffer;
   }
 
@@ -189,15 +182,22 @@ struct CAB_BUFFER *reserve(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  //printf("Buffer reserved\n\r");
-  struct CAB_BUFFER * p;
-  //printf("OLA\n");
-  p = free_b;
-  free_b = p->next;
+  int i = 0;
+  //int found = 1;
+  for( i = 0 ; i < max_buff ; i++ ){
+    if(buffers[i].use == 0){
+      buffers[i].use+=1;
+      break;
+    }
+  }
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  return p;
+  if(i == max_buff){
+    printf("I: %d\n", i);
+    return NULL;
+  }
+  return &buffers[i];
 }
