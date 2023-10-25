@@ -278,7 +278,6 @@ int main(int argc, char *argv[])
 
 void display_image(void)
 {
-    printf("Image displayed\n\r");
     struct CAB_BUFFER *c = getmes();
     printf("GetMes\n");
     unsigned char *pixels = malloc(MAX_WIDTH * MAX_HEIGHT * IMGBYTESPERPIXEL);
@@ -288,6 +287,7 @@ void display_image(void)
     SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
     SDL_RenderPresent(renderer);
     unget(c);
+    printf("Image displayed\n\r");
 }
 
 /* **************************************************
