@@ -19,7 +19,7 @@ all: webCamCapture cab imageViewer landmarkDetector main
 webCamCapture: webCamCapture.c  
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS)
 
-main: main.c cab.o imageViewer.o landmarkDetector2.o
+main: main.c cab.o imageViewer.o landmarkDetector.o
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(OBJFILES) $(LIBS) -pthread
 
 cab: src/cab.c include/cab.h
