@@ -30,11 +30,8 @@
 /* Custom includes */
 #include "include/cab.h"         // For cab struct
 #include "include/imageViewer.h" // For sdl image viewer
-<<<<<<< HEAD
 #include "include/objDetector.h"
-=======
 #include "include/landmarkDetector.h" // For sdl image viewer
->>>>>>> 5ce77230cf2cdbbf424d832a94799e83c3efcae8
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -123,7 +120,6 @@ int main(int argc, char *argv[]) {
     switch (opt) {
     case 'x':
       width = atoi(optarg);
-      // TODO: change this to constants using #define min and max
       if (width < 0 || width > MAX_WIDTH) {
         printf("Invalid x value.\n");
         help(argv[0]);
@@ -132,7 +128,6 @@ int main(int argc, char *argv[]) {
       break;
     case 'y':
       height = atoi(optarg);
-      // TODO: change this to constants using #define min and max
       if (height < 0 || height > MAX_HEIGHT) {
         printf("Invalid y value.\n");
         help(argv[0]);
