@@ -64,7 +64,7 @@ int openCab(const char *cab_name, const int max_buffers, const int dim_x, const 
     printf("dim_x %d, dim_y %d\n", dim_x, dim_y);
     buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
-    printf("%d\n", dim_x);
+    printf("%d\n", max_buffers);
     if (buffers[i].img == NULL) {
       fprintf(stderr, "Structure could not be allocated!");
       return EXIT_FAILURE;
@@ -117,11 +117,7 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  printf("putmes\n\r");
   memcpy(c->img, data, size);
-  printf("Buffer %p\n", c );
-  printf("putmes: use == 0\n\r");
-  printf("putmes: c->img: %p\n\r", c->img);
   mrb = c;
   if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
     perror("Signal failed! wait_for_work"); /* save error in errno */
@@ -197,8 +193,9 @@ struct CAB_BUFFER *reserve(void) {
     pthread_exit(&status);
   }
   if(i == max_buff){
-    printf("I: %d\n", i);
+    printf("Failed to reserve buffer\n", i);
     return NULL;
   }
+  printf("\n\nReserved buffer I: %d\n", i);
   return &buffers[i];
 }
