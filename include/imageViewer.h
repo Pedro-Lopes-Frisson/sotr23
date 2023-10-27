@@ -29,14 +29,10 @@ struct IMAGE_DISPLAY {
  * @param height 
  * @param width 
  * @param btspp 
- * @return struct IMAGE_DISPLAY* 
  */
-struct IMAGE_DISPLAY *initDisplayer(int height, int width, int btspp, char *appName);
+void initDisplayer(int height, int width, int btspp, char *appName);
 
 /**
  * @brief display the image
- * 
- * @param display 
- * @param img 
  */
-void displayImage(struct IMAGE_DISPLAY *display, struct CAB_BUFFER *img);
+void displayImage();

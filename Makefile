@@ -10,23 +10,30 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
-OBJFILES = cab.o imageViewer.o
+OBJFILES = main.o cab.o imageViewer.o objDetector.o
+HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h
 
-all: webCamCapture cab imageViewer main
+all: webCamCapture maino cab imageViewer objDetector main
 .PHONY: all
 
 # Generate application
 webCamCapture: webCamCapture.c  
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS)
 
-main: main.c cab.o imageViewer.o
-	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ cab.o imageViewer.o $(LIBS) -pthread
+main: main.c $(OBJFILES)
+	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(OBJFILES) $(LIBS) -pthread
+
+maino: main.c $(HDRFILES)
+	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
 cab: src/cab.c include/cab.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
 imageViewer: src/imageViewer.c include/imageViewer.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
+
+objDetector: src/objDetector.c include/objDetector.h
+	$(CC) $(CFLAGS) $(LDIRS) $< -c main.o $(LIBS) -pthread
 
 .PHONY: clean 
 

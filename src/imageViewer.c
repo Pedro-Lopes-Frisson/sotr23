@@ -15,8 +15,11 @@
 #include "../include/cab.h" // For cab struct
 #include "../include/imageViewer.h" // For sdl image viewer
 
-struct IMAGE_DISPLAY *initDisplayer(int height, int width, int btspp, char *appName) {
-    struct IMAGE_DISPLAY *display = malloc(sizeof(struct IMAGE_DISPLAY));
+/* Global variables */
+struct IMAGE_DISPLAY *display = NULL; /* Image displayer struct */
+
+void initDisplayer(int height, int width, int btspp, char *appName) {
+    display = malloc(sizeof(struct IMAGE_DISPLAY));
     display->height = height;
     display->width = width;
     display->btspp = btspp;
@@ -45,13 +48,13 @@ struct IMAGE_DISPLAY *initDisplayer(int height, int width, int btspp, char *appN
         display->renderer, SDL_PIXELFORMAT_RGB888,
         SDL_TEXTUREACCESS_STREAMING, width, height
     );
-
-    return display;
 }
 
-void displayImage(struct IMAGE_DISPLAY *display, struct CAB_BUFFER *cab) {
+void displayImage() {
+    struct CAB_BUFFER *c = getmes();
     SDL_RenderClear(display->renderer);
-    SDL_UpdateTexture(display->texture, NULL, cab->img, display->width * display->btspp);
+    SDL_UpdateTexture(display->texture, NULL, c->img, display->width * IMGBYTESPERPIXEL );
     SDL_RenderCopy(display->renderer, display->texture, NULL, NULL);
     SDL_RenderPresent(display->renderer);
+    unget(c);
 }

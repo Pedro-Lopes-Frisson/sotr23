@@ -30,6 +30,7 @@
 /* Custom includes */
 #include "include/cab.h"         // For cab struct
 #include "include/imageViewer.h" // For sdl image viewer
+#include "include/objDetector.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -48,7 +49,7 @@ void display_image(void);
 
 /* Global variables */
 unsigned char appName[] = "imageDisplay"; /* Application name*/
-struct IMAGE_DISPLAY *display = NULL;     /* Image displayer struct */
+int width, height, n; /* n is the number of tasks */
 
 /* Shared memory and sempahore variables */
 #define accessPerms (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) /* Read and write perms for user and group */
@@ -91,7 +92,6 @@ void help(const char *procname)
            "Should start with \"/\" and have no further \"/\"\n");
     printf("\t \t [-s]: semaphore name, in the form string with no spaces. \n");
 }
-int width, height, n; /* n is the number of tasks */
 
 /* **************************************************
  * main() function
@@ -163,28 +163,10 @@ int main(int argc, char *argv[])
     printf("CAB created with %d buffers\n\r", n + 1);
 
     // initialize image displayer
-    // display = initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
+    initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
     printf("Image displayer initialized\n\r");
 
-    SDL_Init(SDL_INIT_VIDEO);
-
-    window = SDL_CreateWindow(appName,
-                              SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              width, height, SDL_WINDOW_RESIZABLE);
-
-    renderer = SDL_CreateRenderer(window,
-                                  -1, SDL_RENDERER_PRESENTVSYNC);
-
-    /* Limit the window size so that it cannot */
-    /* be smaller than teh webcam image size */
-    SDL_SetWindowMinimumSize(window, width, height);
-
-    SDL_RenderSetLogicalSize(renderer, width, height);
-    SDL_RenderSetIntegerScale(renderer, 1);
-
-    screen_texture = SDL_CreateTexture(renderer,
-                                       SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_STREAMING,
-                                       width, height);
+    // initializeObjDetector(width, height);
 
     shMemSize = width * height * IMGBYTESPERPIXEL;
     unsigned char *pixels = malloc(shMemSize);
@@ -276,20 +258,6 @@ int main(int argc, char *argv[])
     return SUCCESS;
 }
 
-void display_image(void)
-{
-    struct CAB_BUFFER *c = getmes();
-    printf("GetMes\n");
-    unsigned char *pixels = malloc(MAX_WIDTH * MAX_HEIGHT * IMGBYTESPERPIXEL);
-    memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
-    SDL_RenderClear(renderer);
-    SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
-    SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-    unget(c);
-    printf("Image displayed\n\r");
-}
-
 /* **************************************************
  * callTasks() function
  *****************************************************/
@@ -300,6 +268,10 @@ void callTasks(int frameCounter)
 
     if (frameCounter % 5 == 0)
     {
-        pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
+        pthread_create(&tIdWork[0], NULL, (void *)displayImage, NULL);
+    }
+    if (frameCounter % 10 == 0)
+    {
+        pthread_create(&tIdWork[1], NULL, (void *)detectObstaclesSpiral, NULL);
     }
 }
