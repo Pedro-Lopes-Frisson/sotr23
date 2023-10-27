@@ -249,22 +249,15 @@ int main(int argc, char *argv[]) {
 
     // wait for new image
     if (!sem_wait(newDataSemAddr)) { /* sem_wait returns 0 on success */
-      printf("New image received\n\r");
 
       // reserve a buffer for writing
       struct CAB_BUFFER *cab = (struct CAB_BUFFER *)reserve();
       if (cab == NULL) {
         continue;
       }
-      printf("Buffer reserved for frame %d\n\r", frameCounter);
-      printf("%p\n", cab);
-      printf("SHmem %p\n", shMemPtr);
-
       // save image to buffer
       putmes(cab, shMemPtr, shMemSize);
-      printf("Image saved to buffer\n\r");
       unget(cab);
-      printf("Unget buffer\n\r");
 
       // check which tasks should be executed
       callTasks(frameCounter);
@@ -285,7 +278,7 @@ int main(int argc, char *argv[]) {
 
 void display_image(void) {
   struct CAB_BUFFER *c = getmes();
-  printf("GetMes %p %d %d\n", c, width, height);
+  //printf("GetMes %p %d %d\n", c, width, height);
   unsigned char *pixels = malloc(MAX_WIDTH * MAX_HEIGHT * IMGBYTESPERPIXEL);
   memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
   unget(c);
@@ -303,7 +296,7 @@ void callTasks(int frameCounter) {
   // display image
 
   if (frameCounter % 1 == 0) {
-    printf("Frame counter %d\n", frameCounter);
+    //printf("Frame counter %d\n", frameCounter);
     //pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
   }
   if (frameCounter % 5 == 0) {
@@ -312,6 +305,6 @@ void callTasks(int frameCounter) {
 	    int status = EXIT_FAILURE;
 	    pthread_exit(&status);
 	}
-	printf("Released landmark thread\n");
+	//printf("Released landmark thread\n");
   }
 }
