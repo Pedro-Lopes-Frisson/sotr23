@@ -15,7 +15,7 @@
  * color and the obstacles are of any other color.
  * 
  */
-void detectObstaclesSpiral();
+void detect_obstacles_spiral();
 
 int calculateSpirals(int n);
 

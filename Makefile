@@ -10,10 +10,10 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
-OBJFILES = main.o cab.o imageViewer.o objDetector.o landmarkDetector.o
+OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o
 HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h
 
-all: webCamCapture maino cab imageViewer objDetector landmarkDetector main
+all: webCamCapture cab imageViewer objDetector landmarkDetector main
 .PHONY: all
 
 # Generate application
