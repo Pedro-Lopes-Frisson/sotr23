@@ -193,7 +193,7 @@ struct CAB_BUFFER *reserve(void) {
     pthread_exit(&status);
   }
   if(i == max_buff){
-    printf("Failed to reserve buffer\n", i);
+    printf("Failed to reserve buffer\n");
     return NULL;
   }
   printf("\n\nReserved buffer I: %d\n", i);

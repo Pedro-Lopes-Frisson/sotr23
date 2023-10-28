@@ -27,10 +27,12 @@
 
 /* SDL includes */
 #include <SDL2/SDL.h>
+
 /* Custom includes */
 #include "include/cab.h"         // For cab struct
 #include "include/imageViewer.h" // For sdl image viewer
-#include "include/landmarkDetector.h" // For sdl image viewer
+#include "include/objDetector.h"
+#include "include/landmarkDetector.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -45,7 +47,6 @@
 int main(int argc, char **argv);
 void help(const char *procname);
 void callTasks(int frameCounter);
-void display_image(void);
 
 /* Global variables */
 unsigned char appName[] = "imageDisplayA"; /* Application name*/
@@ -83,7 +84,7 @@ SDL_Texture *screen_texture;
  *	 Globals
  * */
 int width, height, n = -1; /* n is the number of tasks */
-sem_t landmarkCR;
+sem_t landmarkCR, displayImageCR, detectObstaclesCR;
 
 
 /* **************************************************
@@ -119,7 +120,6 @@ int main(int argc, char *argv[]) {
     switch (opt) {
     case 'x':
       width = atoi(optarg);
-      // TODO: change this to constants using #define min and max
       if (width < 0 || width > MAX_WIDTH) {
         printf("Invalid x value.\n");
         help(argv[0]);
@@ -128,7 +128,6 @@ int main(int argc, char *argv[]) {
       break;
     case 'y':
       height = atoi(optarg);
-      // TODO: change this to constants using #define min and max
       if (height < 0 || height > MAX_HEIGHT) {
         printf("Invalid y value.\n");
         help(argv[0]);
@@ -165,8 +164,13 @@ int main(int argc, char *argv[]) {
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
 
-
-
+  fd = shm_open(shMemName,    /* Open file */
+                O_RDWR,       /* Open for read/write */
+                accessPerms); /* set access permissions */
+  if (fd < 0)
+  {
+      printf("[shared memory reservation] Can't get file descriptor...\n\r");
+  }
 
   // Create landmark finder task
   printf("Initializing thread to find landMarks\n");
@@ -177,28 +181,37 @@ int main(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
   }
 
-
-  // initialize image displayer
-  // display = initDisplayer(height, width, IMGBYTESPERPIXEL, appName);
-  printf("Image displayer initialized\n\r");
   SDL_Init(SDL_INIT_VIDEO);
-
   window =
       SDL_CreateWindow(appName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                        width, height, SDL_WINDOW_RESIZABLE);
-
   renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-
   /* Limit the window size so that it cannot */
   /* be smaller than teh webcam image size */
   SDL_SetWindowMinimumSize(window, width, height);
-
   SDL_RenderSetLogicalSize(renderer, width, height);
   SDL_RenderSetIntegerScale(renderer, 1);
-
   screen_texture =
       SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888,
                         SDL_TEXTUREACCESS_STREAMING, width, height);
+  
+  // Create image displayer task
+  printf("Initializing thread to display image\n");
+  pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
+  // initialize semaphore
+  if (sem_init(&displayImageCR, 0, 1) == -1) {
+      perror("Semaphore initialization failed");
+      exit(EXIT_FAILURE);
+  }
+
+  // Create object detector task
+  printf("Initializing thread to detect objects\n");
+  pthread_create(&tIdWork[0], NULL, (void *)detect_obstacles_spiral, NULL);
+  // initialize semaphore
+  if (sem_init(&displayImageCR, 0, 1) == -1) {
+      perror("Semaphore initialization failed");
+      exit(EXIT_FAILURE);
+  }
 
   shMemSize = width * height * IMGBYTESPERPIXEL;
   unsigned char *pixels = malloc(shMemSize);
@@ -276,35 +289,28 @@ int main(int argc, char *argv[]) {
   return SUCCESS;
 }
 
-void display_image(void) {
-  struct CAB_BUFFER *c = getmes();
-  //printf("GetMes %p %d %d\n", c, width, height);
-  unsigned char *pixels = malloc(MAX_WIDTH * MAX_HEIGHT * IMGBYTESPERPIXEL);
-  memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
-  unget(c);
-  SDL_RenderClear(renderer);
-  SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
-  SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
-}
-
 /* **************************************************
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  // first we call the tasks that should be executed every frame
-  // display image
-
   if (frameCounter % 1 == 0) {
-    //printf("Frame counter %d\n", frameCounter);
-    //pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
+    if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
+        perror("Error posting semapore for obstacle detection");  /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
+    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+        perror("Error posting semapore for image display");  /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
   }
   if (frameCounter % 5 == 0) {
-	if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
-	    perror("Error posting semapore for Landmark detection");  /* save error in errno */
-	    int status = EXIT_FAILURE;
-	    pthread_exit(&status);
-	}
+    if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
+        perror("Error posting semapore for Landmark detection");  /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
 	//printf("Released landmark thread\n");
   }
 }

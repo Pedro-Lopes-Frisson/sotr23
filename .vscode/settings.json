@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "cab.h": "c"
+        "cab.h": "c",
+        "objdetector.h": "c"
     }
 }

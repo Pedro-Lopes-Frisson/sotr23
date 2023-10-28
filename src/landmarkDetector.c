@@ -44,32 +44,32 @@ void detect_landmark(){
         struct CAB_BUFFER *c = getmes();
         memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
         unget(c);
-	// first find blue square
-	if(!imgFindBlueSquare(&pixels, width, height, &cm_x, &cm_y )) {
-		printf("BlueSquare found at (%3d,%3d)\n", cm_x, cm_y);
-	} else {
-		printf("BlueSquare not found\n");
-		continue;
-	}			
+		// first find blue square
+		if(!imgFindBlueSquare(pixels, width, height, &cm_x, &cm_y )) {
+			printf("BlueSquare found at (%3d,%3d)\n", cm_x, cm_y);
+		} else {
+			printf("BlueSquare not found\n");
+			continue;
+		}			
 
-	 //first find blue square
-	if(!imgFindGreenSquare(&pixels,cm_x, width, height, &cm_x2, &cm_y2 )) {
-		printf("GreenSquare found at (%3d,%3d)\n", cm_x2, cm_y2);
-	} else {
-		printf("Green not found\n");
-		continue;
-	}		
+		//first find blue square
+		if(!imgFindGreenSquare(pixels,cm_x, width, height, &cm_x2, &cm_y2 )) {
+			printf("GreenSquare found at (%3d,%3d)\n", cm_x2, cm_y2);
+		} else {
+			printf("Green not found\n");
+			continue;
+		}		
 
-	if(cm_x2 > cm_y - 5 || cm_x2 > cm_y + 5 )
-		printf("LAHNDMARKDETECTED\n\n");
+		if(cm_x2 > cm_y - 5 || cm_x2 > cm_y + 5 )
+			printf("LAHNDMARKDETECTED\n\n");
 
-	SDL_RenderClear(renderer);
-	SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
-	SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-	SDL_RenderPresent(renderer);
-	
+		SDL_RenderClear(renderer);
+		SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
+		SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+		SDL_RenderPresent(renderer);
     }
 }
+
 int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_edge, int *out_edge){
 	#define FINDBLUE_DBG 	0	// Flag to activate output of image processing debug info 
 	
@@ -277,7 +277,7 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 	
 	/* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 	/* 		There are much more robust approaches! */
-	#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+	#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
 	#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 	#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 	
