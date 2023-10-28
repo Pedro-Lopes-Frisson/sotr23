@@ -21,9 +21,13 @@
  * 		- No robutsness checks
  * 		- No memory leaks tests
  * 		- Checked only with two computers running Ubuntu 20.04 and 22.04 and 
- * 			a logitech USB cam and a toshiva internal webcam
- * 		
- *
+ * 			a logitech USB cam and a toshiba internal webcam
+ *  		- 
+ * 	Versions:
+ * 		2023-10-10: 1.1 Fixed bug that required -d option to sharem memory to work 
+ * 						(bug due to width/height vars missing initialization when -d opriom omitted
+ * 
+ * 
  * Information sources
  * 		ffmpeg base documentation (online)
  * 			https://ffmpeg.org/doxygen/trunk/index.html
@@ -295,7 +299,9 @@ int main(int argc, char* argv[])
 
 	/* If shmem defined, create it */
 	if(shMemActiveFlag) {
-		shMemSize = pCodecParameters->width * pCodecParameters->height * IMGBYTESPERPIXEL + 2*sizeof(uint16_t);
+		width = pCodecParameters->width;
+		height = pCodecParameters->height;
+		shMemSize = width * height * IMGBYTESPERPIXEL;
 		printf("shmemsize=%d\n",shMemSize);
 		
 		fd = shm_open(shMemName,    /* Open file */
@@ -325,7 +331,7 @@ int main(int argc, char* argv[])
 		printf("Filesystem entry:       /dev/shm%s\n", shMemName );
 	}
 	
-	/* if new imaghe sem, create it */
+	/* if new image sem, create it */
 	if(newDataSemActiveFlag) {
 		newDataSemAddr = sem_open(newDataSemName, 	/* semaphore name */
 				O_CREAT,       					/* create the semaphore */
@@ -434,7 +440,7 @@ static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFra
 				/* checking file formats. Incompatible RGB(A) orders in ffmpeg format and SDL can 
 				/*   be sorted out modifying the pointers access order / offsets*/
 				for (int y = 0; y < height; ++y) {
-					for (int x = 0; x < width; x++) {	
+					for (int x = 0; px < width; x++) {	
 						pixels[4*(x + y * width)] = *(imgptr++);
 						pixels[4*(x + y * width)+1] = *(imgptr++);
 						pixels[4*(x + y * width)+2] = *(imgptr++);
@@ -459,9 +465,11 @@ static int decode_packet(AVPacket *pPacket, AVCodecContext *pCodecContext, AVFra
 			if(shMemActiveFlag) {				
 				/* Get a pointer to the image frame */
 				pConvFrame = avFrameConvertPixelFormat(pFrame, AV_PIX_FMT_0RGB32); 			
-				imgptr = pConvFrame->data[0];			
+				imgptr = pConvFrame->data[0];
+							
 				/* Copy data to shmem.  */					
-				memcpy(shMemPtr,pConvFrame->data[0],width*height*IMGBYTESPERPIXEL);	
+				memcpy(shMemPtr,imgptr,width*height*IMGBYTESPERPIXEL); 
+				
 				/* Release AVFrame */
 				av_frame_free(&pConvFrame);	
 				

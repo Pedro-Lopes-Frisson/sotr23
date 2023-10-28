@@ -11,47 +11,35 @@
 /* SDL includes */
 #include <SDL2/SDL.h>
 
+/* General includes */
+#include <semaphore.h> /* for semaphores */
+#include <pthread.h> /* for threads */
+
 /* Custom includes */
 #include "../include/cab.h" // For cab struct
 #include "../include/imageViewer.h" // For sdl image viewer
 
-struct IMAGE_DISPLAY *initDisplayer(int height, int width, int btspp, char *appName) {
-    struct IMAGE_DISPLAY *display = malloc(sizeof(struct IMAGE_DISPLAY));
-    display->height = height;
-    display->width = width;
-    display->btspp = btspp;
-    display->appName = appName;
+extern int width, height;
+extern sem_t displayImageCR;
 
-    SDL_Init(SDL_INIT_VIDEO);
+extern SDL_Event event;
+extern SDL_Window *window;
+extern SDL_Renderer *renderer;
+extern SDL_Texture *screen_texture;
 
-    display->window = SDL_CreateWindow(
-        appName, SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, width,
-        height, SDL_WINDOW_RESIZABLE
-    );
+void display_image() {
+    while(1) {
+        if ((sem_wait(&displayImageCR)) != 0) {
+            perror("Error posting semapore for image display");  /* save error in errno */
+            int status = EXIT_FAILURE;
+            pthread_exit(&status);
+        }
 
-    display->renderer = SDL_CreateRenderer(
-        display->window, -1, SDL_RENDERER_PRESENTVSYNC
-    );
-
-    /* Limit the window size so that it cannot */
-	/* be smaller than teh webcam image size */
-	SDL_SetWindowMinimumSize(display->window, width, height);
-
-	SDL_RenderSetLogicalSize(display->renderer, width, height);
-	SDL_RenderSetIntegerScale(display->renderer, 1);
-
-    display->texture = SDL_CreateTexture(
-        display->renderer, SDL_PIXELFORMAT_RGB888,
-        SDL_TEXTUREACCESS_STREAMING, width, height
-    );
-
-    return display;
-}
-
-void displayImage(struct IMAGE_DISPLAY *display, struct CAB_BUFFER *cab) {
-    SDL_UpdateTexture(display->texture, NULL, cab->img, display->width * display->btspp);
-    SDL_RenderClear(display->renderer);
-    SDL_RenderCopy(display->renderer, display->texture, NULL, NULL);
-    SDL_RenderPresent(display->renderer);
+        struct CAB_BUFFER *c = getmes();
+        SDL_RenderClear(renderer);
+        SDL_UpdateTexture(screen_texture, NULL, c->img, width * IMGBYTESPERPIXEL );
+        SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+        SDL_RenderPresent(renderer);
+        unget(c);
+    }
 }
