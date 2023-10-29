@@ -18,6 +18,7 @@
 
 #include "../include/cab.h"
 #include "../include/objDetector.h"
+#include "../include/varsDisplayer.h" // 
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -214,7 +215,7 @@ void detect_obstacles_spiral() {
       cm_x = (out_edge - in_edge) / 2 + in_edge;
 
     if (cm_x >= 0 && cm_y >= 0)
-      printf("oOOOOObject found\n\r"); // Success
+	found_ball(cm_x, cm_y);
     else
       printf("objectOOOOOOOOOOOOOO not found\n\r"); // No object found
 

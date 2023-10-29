@@ -34,6 +34,7 @@
 #include "include/objDetector.h"
 #include "include/landmarkDetector.h"
 #include "include/detectRedSquare.h"
+#include "include/varsDisplayer.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -164,6 +165,7 @@ int main(int argc, char *argv[]) {
   // create CAB structure
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
+  open_rt_database();
 
   fd = shm_open(shMemName,    /* Open file */
                 O_RDWR,       /* Open for read/write */

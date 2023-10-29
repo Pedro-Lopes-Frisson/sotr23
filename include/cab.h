@@ -23,7 +23,7 @@ struct CAB_BUFFER {
  *  Internal monitor operation.
  */
 
-void initialization(void);
+static void initialization(void);
 
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension

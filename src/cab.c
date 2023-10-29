@@ -32,7 +32,7 @@ static pthread_cond_t wait_for_written_buffers;
  * for processing */
 static pthread_cond_t workers_ready;
 
-void initialization(void) {
+static void initialization(void) {
   pthread_cond_init(&wait_for_written_buffers, NULL);
   pthread_cond_init(&workers_ready, NULL);
 }
