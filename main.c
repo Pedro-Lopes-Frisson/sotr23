@@ -33,6 +33,7 @@
 #include "include/imageViewer.h" // For sdl image viewer
 #include "include/objDetector.h"
 #include "include/landmarkDetector.h"
+#include "include/detectRedSquare.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -84,7 +85,7 @@ SDL_Texture *screen_texture;
  *	 Globals
  * */
 int width, height, n = -1; /* n is the number of tasks */
-sem_t landmarkCR, displayImageCR, detectObstaclesCR;
+sem_t landmarkCR, displayImageCR, detectObstaclesCR, redCR;
 
 
 /* **************************************************
@@ -172,15 +173,6 @@ int main(int argc, char *argv[]) {
       printf("[shared memory reservation] Can't get file descriptor...\n\r");
   }
 
-  // Create landmark finder task
-  printf("Initializing thread to find landMarks\n");
-  pthread_create(&tIdWork[1], NULL, (void *)detect_landmark, NULL);
-  // initialize semaphore
-  if (sem_init(&landmarkCR, 0, 1) == -1) {
-      perror("Semaphore initialization failed");
-      exit(EXIT_FAILURE);
-  }
-
   SDL_Init(SDL_INIT_VIDEO);
   window =
       SDL_CreateWindow(appName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -204,11 +196,30 @@ int main(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
   }
 
+
+  // Create landmark finder task
+  printf("Initializing thread to find landMarks\n");
+  pthread_create(&tIdWork[1], NULL, (void *)detect_landmark, NULL);
+  // initialize semaphore
+  if (sem_init(&landmarkCR, 0, 1) == -1) {
+      perror("Semaphore initialization failed");
+      exit(EXIT_FAILURE);
+  }
+
   // Create object detector task
   printf("Initializing thread to detect objects\n");
-  pthread_create(&tIdWork[0], NULL, (void *)detect_obstacles_spiral, NULL);
+  pthread_create(&tIdWork[2], NULL, (void *)detect_obstacles_spiral, NULL);
   // initialize semaphore
   if (sem_init(&displayImageCR, 0, 1) == -1) {
+      perror("Semaphore initialization failed");
+      exit(EXIT_FAILURE);
+  }
+
+  // Create red detector task
+  printf("Initializing thread to detect objects\n");
+  pthread_create(&tIdWork[3], NULL, (void *)detect_red_square, NULL);
+  // initialize semaphore
+  if (sem_init(&redCR, 0, 1) == -1) {
       perror("Semaphore initialization failed");
       exit(EXIT_FAILURE);
   }
@@ -299,14 +310,22 @@ void callTasks(int frameCounter) {
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
-        perror("Error posting semapore for image display");  /* save error in errno */
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-    }
+    // if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+    //     perror("Error posting semapore for image display");  /* save error in errno */
+    //     int status = EXIT_FAILURE;
+    //     pthread_exit(&status);
+    // }
   }
   if (frameCounter % 5 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
+        perror("Error posting semapore for Landmark detection");  /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
+	//printf("Released landmark thread\n");
+  }
+  if (frameCounter % 8 == 0) {
+    if ((sem_post(&redCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);

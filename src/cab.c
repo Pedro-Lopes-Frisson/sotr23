@@ -162,9 +162,10 @@ void unget(struct CAB_BUFFER *buffer) {
 
   buffer->use--;
   if (buffer->use == 0 && buffer != mrb) {
+    printf("Freeing buffer;\n\n");
     free_b = buffer;
   }
-
+  
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;

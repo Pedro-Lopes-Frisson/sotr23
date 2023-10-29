@@ -1,9 +1,6 @@
-
-struct Point {
-	int x;
-	int y;
-};
+#include  "../include/point.h"
 void detect_landmark(void);
 
-int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_edge, int *out_edge);
-int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int height, int *in_edge, int *out_edge);
+int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int width, int height, struct Point *b_s, struct Point *b_e);
+
+int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int width, int height, struct Point *g_s, struct Point *g_e);

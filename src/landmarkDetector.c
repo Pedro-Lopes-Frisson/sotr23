@@ -3,6 +3,7 @@
  *	this landmarks should be a identified as chess pattern retangle
  * */
 
+#include  "../include/point.h"
 #include  "../include/landmarkDetector.h"
 #include  "../include/cab.h"
 #include  <stdio.h>
@@ -36,15 +37,15 @@ extern SDL_Event event;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
 extern SDL_Texture *screen_texture;
-int pixCountX[MAX_WIDTH];
-int pixCountY[MAX_HEIGHT];
-int i,x,y;					/* Indexes */
-int cm_x, cm_y;			/* Coordinates of obgect edges */ 
-int in_edge, out_edge;
-struct Point b_s, b_e, // blue square edges
-	 g_s, g_e, // green square edges
-	 b1_s,b1_e, // bottom blue square edge
-	 g1_s,g1_e;  // green square edge
+static int pixCountX[MAX_WIDTH];
+static int pixCountY[MAX_HEIGHT];
+static int i,x,y;					/* Indexes */
+static int cm_x, cm_y;			/* Coordinates of obgect edges */ 
+static int in_edge, out_edge;
+static struct Point b_s, b_e, // blue square edges
+	 	    g_s, g_e, // green square edges
+	            b1_s,b1_e, // bottom blue square edge
+	            g1_s,g1_e;  // green square edge
 
 void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
@@ -77,7 +78,7 @@ void detect_landmark(){
 
 		//find second green square under first blue square
 		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g1_s, &g1_e )) {
-			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
+			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
 			continue;
@@ -85,18 +86,38 @@ void detect_landmark(){
 
 		// find second blue square after second green square X and after first blue square y
 		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
-			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
+			printf("1BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
 			printf("BlueSquare not found\n");
+			continue;
+		}			
+		if( (g_s.x < b_e.x + 10) && // first green square is close to the end of the first blue square
+			(g1_s.y < b_e.y + 10) && // second green square is under first blue square
+			(g1_s.x < b_s.x + 5) && ( g1_s.x > b_s.x - 5) && // second green square is more or less aligned vertically under the first blue square
+			(b1_s.y < g_s.y + 10) ) // second blue square is under the first green square
+				{
 			printf("LAHNDMARKDETECTED\n\n");
 			SDL_RenderClear(renderer);
 			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
 			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
 			SDL_RenderPresent(renderer);
-		}			
 
-		if(g_s.x > b_e.x - 5 || g_s.x > b_e.x + 5 ){
 		}
+
+		b_s.x = 0; b_s.y = 0;
+		b_e.x = 0; b_e.y = 0;
+
+                g_s.x = 0; g_e.x = 0;
+		g_e.x = 0; g_e.y = 0;
+
+                b1_s.x = 0; b1_s.y = 0; 
+		b1_e.x = 0; b1_e.y = 0; 
+
+                g1_s.x = 0; g1_s.y = 0;
+		g1_e.x = 0; g1_e.y = 0; 
+
+
+
     }
 }
 
@@ -235,6 +256,13 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	/* If object in the left image edge */
 	if(out_edge > 0 && in_edge == -1)
 		in_edge = 0;
+
+	if (in_edge > out_edge){
+		int t = out_edge;
+		out_edge = in_edge;
+		in_edge =t;
+	}
+
 	
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_y = (out_edge-in_edge)/2+in_edge;
@@ -277,6 +305,11 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	if(out_edge > 0 && in_edge == -1)
 		in_edge = 0;
 	
+	if (in_edge > out_edge){
+		int t = out_edge;
+		out_edge = in_edge;
+		in_edge =t;
+	}
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
 		
@@ -434,6 +467,11 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	if(out_edge > 0 && in_edge == -1)
 		in_edge = 0;
 	
+	if (in_edge > out_edge){
+		int t = out_edge;
+		out_edge = in_edge;
+		in_edge =t;
+	}
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_y = (out_edge-in_edge)/2+in_edge;
 		
@@ -474,6 +512,11 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	/* If object in the left image edge */
 	if(out_edge > 0 && in_edge == -1)
 		in_edge = 0;
+	if (in_edge > out_edge){
+		int t = out_edge;
+		out_edge = in_edge;
+		in_edge =t;
+	}
 	
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;

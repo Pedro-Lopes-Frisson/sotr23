@@ -10,10 +10,10 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
-OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o
-HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h
+OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o detectRedSquare.o
+HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h include/landmarkDetector.h detectRedSquare.h
 
-all: webCamCapture cab imageViewer objDetector landmarkDetector main
+all: webCamCapture cab imageViewer objDetector landmarkDetector detectRedSquare main
 .PHONY: all
 
 # Generate application
@@ -32,7 +32,10 @@ imageViewer: src/imageViewer.c include/imageViewer.h
 objDetector: src/objDetector.c include/objDetector.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
-landmarkDetector: src/landmarkDetector.c include/landmarkDetector.h
+landmarkDetector: src/landmarkDetector.c include/landmarkDetector.h include/point.h
+	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
+
+detectRedSquare: src/detectRedSquare.c include/detectRedSquare.h include/point.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
 .PHONY: clean 
