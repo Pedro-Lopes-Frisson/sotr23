@@ -18,6 +18,17 @@
 
 /* SDL includes */
 #include <SDL2/SDL.h>
+
+#define FINDBLUE_DBG 	0	// Flag to activate output of image processing debug info 
+
+/* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
+/* 		There are much more robust approaches! */
+#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
+#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
+
+
 extern int width, height;
 extern sem_t landmarkCR;
 
@@ -25,15 +36,19 @@ extern SDL_Event event;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
 extern SDL_Texture *screen_texture;
+int pixCountX[MAX_WIDTH];
+int pixCountY[MAX_HEIGHT];
+int i,x,y;					/* Indexes */
+int cm_x, cm_y;			/* Coordinates of obgect edges */ 
+int in_edge, out_edge;
+struct Point b_s, b_e, // blue square edges
+	 g_s, g_e, // green square edges
+	 b1_s,b1_e, // bottom blue square edge
+	 g1_s,g1_e;  // green square edge
 
 void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
-    int* pixCountX = (int *)malloc(width * sizeof(int));
-    int* pixCountY = (int *)malloc(height * sizeof(int));
-    int i,x,y;
-    int in_edge, out_edge;
-    int  cm_x, cm_y;
-    int  cm_x2, cm_y2;
+
 
     while(1){
         if ((sem_wait(&landmarkCR)) != 0) { /* enter monitor */
@@ -45,52 +60,61 @@ void detect_landmark(){
         memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
         unget(c);
 		// first find blue square
-		if(!imgFindBlueSquare(pixels, width, height, &cm_x, &cm_y )) {
-			printf("BlueSquare found at (%3d,%3d)\n", cm_x, cm_y);
+		if(!imgFindBlueSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
+			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
 			printf("BlueSquare not found\n");
 			continue;
 		}			
 
-		//first find blue square
-		if(!imgFindGreenSquare(pixels,cm_x, width, height, &cm_x2, &cm_y2 )) {
-			printf("GreenSquare found at (%3d,%3d)\n", cm_x2, cm_y2);
+		//find first green square
+		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g_s, &g_e )) {
+			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
 			continue;
 		}		
 
-		if(cm_x2 > cm_y - 5 || cm_x2 > cm_y + 5 )
-			printf("LAHNDMARKDETECTED\n\n");
+		//find second green square under first blue square
+		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g1_s, &g1_e )) {
+			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
+		} else {
+			printf("Green not found\n");
+			continue;
+		}		
 
-		SDL_RenderClear(renderer);
-		SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
-		SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-		SDL_RenderPresent(renderer);
+		// find second blue square after second green square X and after first blue square y
+		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
+			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
+		} else {
+			printf("BlueSquare not found\n");
+			printf("LAHNDMARKDETECTED\n\n");
+			SDL_RenderClear(renderer);
+			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
+			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+			SDL_RenderPresent(renderer);
+		}			
+
+		if(g_s.x > b_e.x - 5 || g_s.x > b_e.x + 5 ){
+		}
     }
 }
 
-int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_edge, int *out_edge){
-	#define FINDBLUE_DBG 	0	// Flag to activate output of image processing debug info 
-	
-	/* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
-	/* 		There are much more robust approaches! */
-	#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
-	#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
-	#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
+int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int width, int height, struct Point *b_s, struct Point *b_e){
 	
 	/* Variables */
 	unsigned char *imgPtr;		/* Pointer to image */
-	int i,x,y;					/* Indexes */
-	int pixCountX[MAX_WIDTH], pixCountY[MAX_HEIGHT];  	/* Count of pixels by row and column */
-	int cm_x, cm_y;			/* Coordinates of obgect edges */ 
-	int found_blue = 0;
-	
 	/* Check image size */
 	if(width > MAX_WIDTH || height > MAX_HEIGHT) {
 		printf("[imgFindBlueSquare]ERROR: image size exceeds the limits allowed\n\r");
 		return -1;
 	}
+
+	if(startX > width - PIX_THRESHOLD)
+		return -1;
+
+	if(startY > height - PIX_THRESHOLD)
+		return -1;
 	
 	/* Reset counters */
 	for(x=0; x<MAX_WIDTH; x++)
@@ -110,9 +134,9 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 	/* (0,height-1) (1,height-1) (2, height-1) ... (height-1, width-1)*/
 	
 	imgPtr = shMemPtr;
-	for (y = 0; y < height; ++y) {
+	for (y = startY; y < height; ++y) {
 		if(FINDBLUE_DBG) printf("\n");
-		for (x = 0; x < width; x++) {	
+		for (x = startX; x < width; x++) {	
 			if(FINDBLUE_DBG) {
 				if(x < 20) {
 					printf("%x:%x:%x - ",*imgPtr, *(imgPtr+1), *(imgPtr+2));
@@ -132,9 +156,9 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 	}
 		
 	/* Process image - find count of blue pixels in each column */	
-	for (x = 0; x < width; x++) {	
+	for (x = startX; x < width; x++) {	
 		imgPtr = shMemPtr + x * 4; // Offset to the xth column in the firts row
-		for (y = 0; y < height; y++) {		
+		for (y = startY; y < height; y++) {		
 			if(*imgPtr > (MAGNITUDE * (*(imgPtr+1))) && *imgPtr > (MAGNITUDE * (*(imgPtr+2))))
 				pixCountX[x]+=1;
 
@@ -189,31 +213,31 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 	cm_y = -1;		
 		
 	/* Detect YY CoM */
-	*in_edge = -1;	// By default not found
-	*out_edge= -1;
+	in_edge = -1;	// By default not found
+	out_edge= -1;
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
 		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
-			*in_edge = y;
+			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
 		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
-			*out_edge = y;
+			out_edge = y;
 			break;
 		}
 	}	
 			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
-	if(*out_edge > 0 && *in_edge == -1)
-		*in_edge = 0;
+	if(out_edge > 0 && in_edge == -1)
+		in_edge = 0;
 	
-	if((*in_edge >= 0) && (*out_edge >= 0))
-		cm_y = (*out_edge-*in_edge)/2+*in_edge;
+	if((in_edge >= 0) && (out_edge >= 0))
+		cm_y = (out_edge-in_edge)/2+in_edge;
 		
 	if(FINDBLUE_DBG) {
 		if(cm_y >= 0) {
@@ -222,36 +246,39 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 			printf("Blue square center of mass y = NF\n");
 		}
 	}				
-	printf("Start Y: %d\n", *in_edge  );
-	printf("end Y: %d\n", *out_edge );
+
+	b_s->y = in_edge;
+	b_e->y = out_edge;
+	printf("Start Y: %d\n", in_edge  );
+	printf("end Y: %d\n", out_edge );
 	
 		
 	/* Detect XX CoM */
-	*in_edge = -1;	// By default not found
-	*out_edge= -1;
+	in_edge = -1;	// By default not found
+	out_edge= -1;
 	
 	/* Detect rising edge - beginning */
 	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES -1); x++) {
 		if((pixCountX[x] < PIX_THRESHOLD) && ((pixCountX[x+1] >= PIX_THRESHOLD))) {
-			*in_edge = x;
+			in_edge = x;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES -1); x++) {
 		if((pixCountX[x] >= PIX_THRESHOLD) && ((pixCountX[x+1] < PIX_THRESHOLD))) {
-			*out_edge = x;
+			out_edge = x;
 			break;
 		}
 	}	
 			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
-	if(*out_edge > 0 && *in_edge == -1)
-		*in_edge = 0;
+	if(out_edge > 0 && in_edge == -1)
+		in_edge = 0;
 	
-	if((*in_edge >= 0) && (*out_edge >= 0))
-		cm_x = (*out_edge-*in_edge)/2+*in_edge;
+	if((in_edge >= 0) && (out_edge >= 0))
+		cm_x = (out_edge-in_edge)/2+in_edge;
 		
 	if(FINDBLUE_DBG) {
 		if(cm_x >= 0) {
@@ -260,9 +287,10 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 			printf("Blue square center of mass x = NF\n");
 		}
 	}					
-		
-	printf("Start X: %d\n", *in_edge );
-	printf("end X: %d\n", *out_edge );
+	b_s->x = in_edge;
+	b_e->x = out_edge;
+	printf("Start X: %d\n", in_edge );
+	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
 	
 	if(cm_x >= 0 && cm_y >= 0)
@@ -272,21 +300,9 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int width, int height, int *in_e
 }
 
 
-int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int height, int *in_edge, int *out_edge){
-	#define FINDBLUE_DBG 	0	// Flag to activate output of image processing debug info 
-	
-	/* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
-	/* 		There are much more robust approaches! */
-	#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
-	#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
-	#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
-	
+int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int width, int height, struct Point *g_s, struct Point* g_e){
 	/* Variables */
 	unsigned char *imgPtr;		/* Pointer to image */
-	int i,x,y;					/* Indexes */
-	int pixCountX[MAX_WIDTH], pixCountY[MAX_HEIGHT];  	/* Count of pixels by row and column */
-	int cm_x, cm_y;			/* Coordinates of obgect edges */ 
-	int found_blue = 0;
 	
 	/* Check image size */
 	if(width > MAX_WIDTH || height > MAX_HEIGHT) {
@@ -294,7 +310,9 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 		return -1;
 	}
 	if(startX > width - PIX_THRESHOLD)
-		return -1;
+		return -1; 
+	if(startY > height - PIX_THRESHOLD)
+		return -1; 
 	
 	/* Reset counters */
 	for(x=0; x<MAX_WIDTH; x++)
@@ -314,7 +332,7 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 	/* (0,height-1) (1,height-1) (2, height-1) ... (height-1, width-1)*/
 	
 	imgPtr = shMemPtr;
-	for (y = 0; y < height; ++y) {
+	for (y = startY; y < height; ++y) {
 		if(FINDBLUE_DBG) printf("\n");
 		for (x = startX; x < width; x++) {	
 			if(FINDBLUE_DBG) {
@@ -327,7 +345,7 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 			// imgPtr -> Blue 
 			// imgPtr + 1 -> green
 			// imgPtr + 2 -> red
-			if(*(imgPtr+1) > (MAGNITUDE * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE * (*(imgPtr+2))))
+			if(*(imgPtr+1) > (MAGNITUDE_GREEN * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE_GREEN * (*(imgPtr+2))))
 				pixCountY[y]+=1;
 			
 			/* Step to next pixel */
@@ -338,8 +356,8 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 	/* Process image - find count of blue pixels in each column */	
 	for (x = startX; x < width; x++) {	
 		imgPtr = shMemPtr + x * 4; // Offset to the xth column in the firts row
-		for (y = 0; y < height; y++) {		
-			if(*(imgPtr+1) > (MAGNITUDE * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE * (*(imgPtr+2))))
+		for (y = startY; y < height; y++) {		
+			if(*(imgPtr+1) > (MAGNITUDE_GREEN * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE_GREEN * (*(imgPtr+2))))
 				pixCountX[x]+=1;
 
 			
@@ -393,31 +411,31 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 	cm_y = -1;		
 		
 	/* Detect YY CoM */
-	*in_edge = -1;	// By default not found
-	*out_edge= -1;
+	in_edge = -1;	// By default not found
+	out_edge= -1;
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
 		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
-			*in_edge = y;
+			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
 		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
-			*out_edge = y;
+			out_edge = y;
 			break;
 		}
 	}	
 			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
-	if(*out_edge > 0 && *in_edge == -1)
-		*in_edge = 0;
+	if(out_edge > 0 && in_edge == -1)
+		in_edge = 0;
 	
-	if((*in_edge >= 0) && (*out_edge >= 0))
-		cm_y = (*out_edge-*in_edge)/2+*in_edge;
+	if((in_edge >= 0) && (out_edge >= 0))
+		cm_y = (out_edge-in_edge)/2+in_edge;
 		
 	if(FINDBLUE_DBG) {
 		if(cm_y >= 0) {
@@ -426,47 +444,43 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int width, int heig
 			printf("Blue square center of mass y = NF\n");
 		}
 	}				
-	printf("Start Y: %d\n", *in_edge  );
-	printf("end Y: %d\n", *out_edge );
+
+	g_s->y = in_edge;
+	g_e->y = out_edge;
+	printf("Start Y: %d\n", in_edge  );
+	printf("end Y: %d\n", out_edge );
 	
 		
 	/* Detect XX CoM */
-	*in_edge = -1;	// By default not found
-	*out_edge= -1;
+	in_edge = -1;	// By default not found
+	out_edge= -1;
 	
 	/* Detect rising edge - beginning */
 	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES -1); x++) {
 		if((pixCountX[x] < PIX_THRESHOLD) && ((pixCountX[x+1] >= PIX_THRESHOLD))) {
-			*in_edge = x;
+			in_edge = x;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES -1); x++) {
 		if((pixCountX[x] >= PIX_THRESHOLD) && ((pixCountX[x+1] < PIX_THRESHOLD))) {
-			*out_edge = x;
+			out_edge = x;
 			break;
 		}
 	}	
 			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
-	if(*out_edge > 0 && *in_edge == -1)
-		*in_edge = 0;
+	if(out_edge > 0 && in_edge == -1)
+		in_edge = 0;
 	
-	if((*in_edge >= 0) && (*out_edge >= 0))
-		cm_x = (*out_edge-*in_edge)/2+*in_edge;
-		
-	if(FINDBLUE_DBG) {
-		if(cm_x >= 0) {
-			printf("Blue square center of mass x = %d\n", cm_x);
-		} else {
-			printf("Blue square center of mass x = NF\n");
-		}
-	}					
-		
-	printf("Start X: %d\n", *in_edge );
-	printf("end X: %d\n", *out_edge );
+	if((in_edge >= 0) && (out_edge >= 0))
+		cm_x = (out_edge-in_edge)/2+in_edge;
+	g_s->x = in_edge;
+	g_e->x = out_edge;
+	printf("Start X: %d\n", in_edge );
+	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
 	
 	if(cm_x >= 0 && cm_y >= 0)
