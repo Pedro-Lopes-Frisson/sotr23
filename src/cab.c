@@ -144,7 +144,9 @@ struct CAB_BUFFER *getmes(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  printf("Get Mes : %d\n", mrb->use);
   mrb->use++;
+  printf("Get Mes : %d\n", mrb->use);
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
@@ -183,7 +185,7 @@ struct CAB_BUFFER *reserve(void) {
   int i = 0;
   //int found = 1;
   for( i = 0 ; i < max_buff ; i++ ){
-    if(buffers[i].use == 0){
+    if(buffers[i].use <= 0){
       buffers[i].use+=1;
       break;
     }
