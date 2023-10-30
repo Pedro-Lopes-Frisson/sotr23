@@ -200,6 +200,7 @@ int main(int argc, char *argv[]) {
   printf("Initializing thread to display image\n");
 
   struct sched_param parmDisplayImg;
+  pthread_attr_getschedparam (&attr, &parmDisplayImg);
   parmDisplayImg.sched_priority = 4;
   pthread_attr_setschedparam(&attr, &parmDisplayImg);
 
@@ -214,6 +215,7 @@ int main(int argc, char *argv[]) {
   printf("Initializing thread to find landMarks\n");
 
   struct sched_param parmLandmark;
+  pthread_attr_getschedparam (&attr, &parmLandmark);
   parmLandmark.sched_priority = 3;
   pthread_attr_setschedparam(&attr, &parmLandmark);
 
@@ -228,6 +230,7 @@ int main(int argc, char *argv[]) {
   printf("Initializing thread to detect objects\n");
 
   struct sched_param parmDetectObstacles;
+  pthread_attr_getschedparam (&attr, &parmDetectObstacles);
   parmDetectObstacles.sched_priority = 1;
   pthread_attr_setschedparam(&attr, &parmDetectObstacles);
 
@@ -242,6 +245,7 @@ int main(int argc, char *argv[]) {
   printf("Initializing thread to detect red objects\n");
 
   struct sched_param parmRed;
+  pthread_attr_getschedparam (&attr, &parmRed);
   parmRed.sched_priority = 2;
   pthread_attr_setschedparam(&attr, &parmRed);
 
