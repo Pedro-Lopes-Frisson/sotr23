@@ -189,19 +189,35 @@ int main(int argc, char *argv[]) {
       SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888,
                         SDL_TEXTUREACCESS_STREAMING, width, height);
   
+  /* -------------------TASKS------------------- */
+
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+  pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+
   // Create image displayer task
   printf("Initializing thread to display image\n");
-  pthread_create(&tIdWork[0], NULL, (void *)display_image, NULL);
+
+  struct sched_param parmDisplayImg;
+  parmDisplayImg.sched_priority = 4;
+  pthread_attr_setschedparam(&attr, &parmDisplayImg);
+
+  pthread_create(&tIdWork[0], &attr, (void *)display_image, NULL);
   // initialize semaphore
   if (sem_init(&displayImageCR, 0, 1) == -1) {
       perror("Semaphore initialization failed");
       exit(EXIT_FAILURE);
   }
 
-
   // Create landmark finder task
   printf("Initializing thread to find landMarks\n");
-  pthread_create(&tIdWork[1], NULL, (void *)detect_landmark, NULL);
+
+  struct sched_param parmLandmark;
+  parmLandmark.sched_priority = 3;
+  pthread_attr_setschedparam(&attr, &parmLandmark);
+
+  pthread_create(&tIdWork[1], &attr, (void *)detect_landmark, NULL);
   // initialize semaphore
   if (sem_init(&landmarkCR, 0, 1) == -1) {
       perror("Semaphore initialization failed");
@@ -210,7 +226,12 @@ int main(int argc, char *argv[]) {
 
   // Create object detector task
   printf("Initializing thread to detect objects\n");
-  pthread_create(&tIdWork[2], NULL, (void *)detect_obstacles_spiral, NULL);
+
+  struct sched_param parmDetectObstacles;
+  parmDetectObstacles.sched_priority = 1;
+  pthread_attr_setschedparam(&attr, &parmDetectObstacles);
+
+  pthread_create(&tIdWork[2], &attr, (void *)detect_obstacles_spiral, NULL);
   // initialize semaphore
   if (sem_init(&displayImageCR, 0, 1) == -1) {
       perror("Semaphore initialization failed");
@@ -218,13 +239,20 @@ int main(int argc, char *argv[]) {
   }
 
   // Create red detector task
-  printf("Initializing thread to detect objects\n");
-  pthread_create(&tIdWork[3], NULL, (void *)detect_red_square, NULL);
+  printf("Initializing thread to detect red objects\n");
+
+  struct sched_param parmRed;
+  parmRed.sched_priority = 2;
+  pthread_attr_setschedparam(&attr, &parmRed);
+
+  pthread_create(&tIdWork[3], &attr, (void *)detect_red_square, NULL);
   // initialize semaphore
   if (sem_init(&redCR, 0, 1) == -1) {
       perror("Semaphore initialization failed");
       exit(EXIT_FAILURE);
   }
+
+  /* -------------------TASKS------------------- */
 
   shMemSize = width * height * IMGBYTESPERPIXEL;
   unsigned char *pixels = malloc(shMemSize);
@@ -312,11 +340,12 @@ void callTasks(int frameCounter) {
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-    // if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
-    //     perror("Error posting semapore for image display");  /* save error in errno */
-    //     int status = EXIT_FAILURE;
-    //     pthread_exit(&status);
-    // }
+
+    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+        perror("Error posting semapore for image display");  /* save error in errno */
+        int status = EXIT_FAILURE;
+        pthread_exit(&status);
+    }
   }
   if (frameCounter % 5 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
