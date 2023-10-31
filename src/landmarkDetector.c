@@ -12,6 +12,7 @@
 #include  <string.h>
 #include  <pthread.h>
 #include  <stdint.h>
+#include  <math.h>
 
 #define MAX_WIDTH 1980
 #define MAX_HEIGHT 1080
@@ -25,7 +26,7 @@
 
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
-#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
 #define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
 #define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 #define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
@@ -50,17 +51,19 @@ static struct Point b_s, b_e, // blue square edges
 
 void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
-
+	struct CAB_BUFFER *c = NULL;
 
     while(1){
+	    if (c != NULL)
+	    	unget(c);
         if ((sem_wait(&landmarkCR)) != 0) { /* enter monitor */
             perror("Error posting semapore for Landmark detection");  /* save error in errno */
             int status = EXIT_FAILURE;
             pthread_exit(&status);
         }
-        struct CAB_BUFFER *c = getmes();
+        c = getmes();
+	printf("Looking for rectagles\n");
         memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
-        unget(c);
 		// first find blue square
 		if(!imgFindBlueSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
 			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
@@ -93,55 +96,14 @@ void detect_landmark(){
 			continue;
 		}			
 
-		/**eserved buffer I: 2
-Start Y: 14
-end Y: 24
-Start X: 64
-end X: 72
-BlueSquare found at ( 64, 14)
-
-Start Y: 23
-end Y: 28
-Start X: 71
-end X: 121
-GreenSquare found at ( 71, 23)
-
-Start Y: 23
-end Y: 28
-Start X: 71
-end X: 121
-1GreenSquare found at ( 71, 23)
-
-Start Y: 22
-end Y: 39
-Start X: 322
-end X: 404
-1BlueSquare found at ( 64, 14)
-
-64,14,72,24
-71,23,121,28
-71,23,121,28
-322,22,404,39
-Reserving buffer
-
-		 * */
-
-
-
-
-		if( (g_s.x < b_e.x + 20) && // first green square is close to the end of the first blue square
-			(g1_s.y < b_e.y + 20) && // second green square is under first blue square
-			(g1_s.x < b_s.x + 20) && ( g1_s.x > b_s.x - 20) && // second green square is more or less aligned vertically under the first blue square
-			(b1_s.y < g_s.y + 20) ) // second blue square is under the first green square
-				{
+		if( 	(abs(g_s.x - b_e.x )< 50) && // first green square is close to the end of the first blue square
+			(abs(g1_s.y - b_e.y )<50) && // second green square is under first blue square
+			(abs(g1_s.x - b_s.x )<50) && 
+			(abs(b1_s.y - g_s.y)<50) ) // second blue square is under the first green square
+			        {
 
 			printf("LAHNDMARKDETECTED\n\n");
 			found_landamark(b_e.x, b_e.y);
-			SDL_RenderClear(renderer);
-			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
-			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-			SDL_RenderPresent(renderer);
-
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
