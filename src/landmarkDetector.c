@@ -133,14 +133,14 @@ Reserving buffer
 			(g1_s.y < b_e.y + 20) && // second green square is under first blue square
 			(g1_s.x < b_s.x + 20) && ( g1_s.x > b_s.x - 20) && // second green square is more or less aligned vertically under the first blue square
 			(b1_s.y < g_s.y + 20) ) // second blue square is under the first green square
-				{
+		{
 
 			printf("LAHNDMARKDETECTED\n\n");
 			found_landamark(b_e.x, b_e.y);
-			SDL_RenderClear(renderer);
-			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
-			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-			SDL_RenderPresent(renderer);
+			// SDL_RenderClear(renderer);
+			// SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL);
+			// SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+			// SDL_RenderPresent(renderer);
 
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
