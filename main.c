@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmDisplayImg;
   pthread_attr_getschedparam (&attr, &parmDisplayImg);
-  parmDisplayImg.sched_priority = 4;
+  parmDisplayImg.sched_priority = 90;
   pthread_attr_setschedparam(&attr, &parmDisplayImg);
 
   pthread_create(&tIdWork[0], &attr, (void *)display_image, NULL);
@@ -216,7 +216,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmLandmark;
   pthread_attr_getschedparam (&attr, &parmLandmark);
-  parmLandmark.sched_priority = 3;
+  parmLandmark.sched_priority = 92;
   pthread_attr_setschedparam(&attr, &parmLandmark);
 
   pthread_create(&tIdWork[1], &attr, (void *)detect_landmark, NULL);
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmDetectObstacles;
   pthread_attr_getschedparam (&attr, &parmDetectObstacles);
-  parmDetectObstacles.sched_priority = 1;
+  parmDetectObstacles.sched_priority = 96;
   pthread_attr_setschedparam(&attr, &parmDetectObstacles);
 
   pthread_create(&tIdWork[2], &attr, (void *)detect_obstacles_spiral, NULL);
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmRed;
   pthread_attr_getschedparam (&attr, &parmRed);
-  parmRed.sched_priority = 2;
+  parmRed.sched_priority = 94;
   pthread_attr_setschedparam(&attr, &parmRed);
 
   pthread_create(&tIdWork[3], &attr, (void *)detect_red_square, NULL);
