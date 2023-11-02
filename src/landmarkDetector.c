@@ -26,8 +26,8 @@
 
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
-#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
-#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE_GREEN 		1.5 		// minimum ratio between Blue and other colors to be considered blue
 #define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 #define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 
@@ -54,6 +54,7 @@ void detect_landmark(){
 	struct CAB_BUFFER *c = NULL;
 
     while(1){
+	    printf("\n\n");
 	    if (c != NULL)
 	    	unget(c);
         if ((sem_wait(&landmarkCR)) != 0) { /* enter monitor */
@@ -68,8 +69,7 @@ void detect_landmark(){
 		if(!imgFindBlueSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
 			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
-			printf("BlueSquare not found\n");
-			continue;
+			printf("\n\n\n\nBlueSquare not found\n");
 		}			
 
 		//find first green square
@@ -77,7 +77,6 @@ void detect_landmark(){
 			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
-			continue;
 		}		
 
 		//find second green square under first blue square
@@ -85,32 +84,44 @@ void detect_landmark(){
 			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
-			continue;
 		}		
 
 		// find second blue square after second green square X and after first blue square y
 		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
-			printf("1BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
+			printf("1BlueSquare found at (%3d,%3d)\n", b1_s.x, b1_s.y);
 		} else {
 			printf("BlueSquare not found\n");
-			continue;
 		}			
 
-		if( 	(abs(g_s.x - b_e.x )< 50) && // first green square is close to the end of the first blue square
-			(abs(g1_s.y - b_e.y )<50) && // second green square is under first blue square
-			(abs(g1_s.x - b_s.x )<50) && 
-			(abs(b1_s.y - g_s.y)<50) ) // second blue square is under the first green square
+		if( 	(abs(g_s.x - b_e.x)   < 80) + // first green square is close to the end of the first blue square
+			(abs(g1_s.y - b_e.y)  < 80) + // second green square is under first blue square
+			(abs(g1_s.x - b_s.x)  < 80) + 
+			(abs(b1_s.y - g_s.y)  < 80) > 2 ) // second blue square is under the first green square
 			        {
 
 			printf("LAHNDMARKDETECTED\n\n");
 			found_landamark(b_e.x, b_e.y);
+			printf("Bools : %d,%d,%d,%d\n",(abs(g_s.x - b_e.x)   < 80),
+                                              (abs(g1_s.y - b_e.y)  < 80),
+					      (abs(g1_s.x - b_s.x)  < 80),
+					      (abs(b1_s.y - g_s.y)  < 80));
+
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
 			printf("%d,%d,%d,%d\n", g1_s.x, g1_s.y, g1_e.x, g1_e.y);
 			printf("%d,%d,%d,%d\n", b1_s.x, b1_s.y, b1_e.x, b1_e.y);
+			printf("Bools : %d,%d,%d,%d\n",(abs(g_s.x - b_e.x)   < 80),
+                                              (abs(g1_s.y - b_e.y)  < 80),
+					      (abs(g1_s.x - b_s.x)  < 80),
+					      (abs(b1_s.y - g_s.y)  < 80));
 		}
 
+			printf("Rendering\n\n");
+			SDL_RenderClear(renderer);
+			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
+			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+			SDL_RenderPresent(renderer);
 		b_s.x = 0; b_s.y = 0;
 		b_e.x = 0; b_e.y = 0;
 
@@ -259,6 +270,7 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 		}
 	}	
 			
+			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
 	if(out_edge > 0 && in_edge == -1)
@@ -269,6 +281,7 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
 
 	
 	if((in_edge >= 0) && (out_edge >= 0))
@@ -317,6 +330,7 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
 		
@@ -332,6 +346,23 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	printf("Start X: %d\n", in_edge );
 	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
+
+	for(y=b_s->y; y < b_e->y; y++) {
+		shMemPtr[y +(b_s->x % height)* width ] = (unsigned char)0x0000ff00;
+		shMemPtr[y +((b_s->x + 1 )% height)* width ] = (unsigned char)0x0000ff00;
+	}	
+	for(y=b_s->y; y < b_e->y; y++) {
+		shMemPtr[y +((b_s->x - 1 )% height)* width ] = (unsigned char)0x0000ff00;
+	}	
+
+	for(x=b_s->x; x < b_e->x; x++) {
+		shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
+		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
+	}	
+	for(x=b_s->x; x < b_e->x; x++) {
+		shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
+		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
+	}	
 	
 	if(cm_x >= 0 && cm_y >= 0)
 		return 0;	// Success
@@ -479,6 +510,11 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
+	for(y=in_edge; y < out_edge; y++) {
+		shMemPtr[y] = (unsigned char)0xffffff00;
+	}	
+
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_y = (out_edge-in_edge)/2+in_edge;
 		
@@ -525,6 +561,9 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 		in_edge =t;
 	}
 	
+	for(y=in_edge; y < out_edge; y++) {
+		shMemPtr[(y % height) * width + (int)(y/height)] = (unsigned char)0xffffff00;
+	}	
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
 	g_s->x = in_edge;
