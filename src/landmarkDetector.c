@@ -7,6 +7,7 @@
 #include  "../include/landmarkDetector.h"
 #include  "../include/cab.h"
 #include "../include/varsDisplayer.h" // 
+#include <SDL2/SDL_pixels.h>
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <string.h>
@@ -26,19 +27,20 @@
 
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
-#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
-#define MAGNITUDE_GREEN 		1.5 		// minimum ratio between Blue and other colors to be considered blue
-#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
-#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
+#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define PIX_THRESHOLD 	80 	// Minimum number of pixels to be considered an object of interest 
+#define LPF_SAMPLES		8 	// Simple average for filtering - number of samples to average 
 
 
 extern int width, height;
 extern sem_t landmarkCR;
 
-extern SDL_Event event;
-extern SDL_Window *window;
-extern SDL_Renderer *renderer;
-extern SDL_Texture *screen_texture;
+static SDL_Event event;
+static SDL_Window *window;
+static SDL_Renderer *renderer;
+static SDL_Texture *screen_texture;
+
 static int pixCountX[MAX_WIDTH];
 static int pixCountY[MAX_HEIGHT];
 static int i,x,y;					/* Indexes */
@@ -52,6 +54,30 @@ static struct Point b_s, b_e, // blue square edges
 void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
 	struct CAB_BUFFER *c = NULL;
+
+		SDL_Init(SDL_INIT_VIDEO);
+
+		window = SDL_CreateWindow("WebCamCapture1",
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			width, height,
+			SDL_WINDOW_RESIZABLE);
+
+		renderer = SDL_CreateRenderer(window,
+			-1, SDL_RENDERER_PRESENTVSYNC);
+
+		width = width;
+		height = height;
+
+		/* Limit the window size so that it cannot */
+		/* be smaller than teh webcam image size */
+		SDL_SetWindowMinimumSize(window, width, height);
+
+		SDL_RenderSetLogicalSize(renderer, width, height);
+		SDL_RenderSetIntegerScale(renderer, 1);
+
+		screen_texture = SDL_CreateTexture(renderer,
+			SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING,
+			width, height);
 
     while(1){
 	    printf("\n\n");
@@ -70,6 +96,7 @@ void detect_landmark(){
 			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
 			printf("\n\n\n\nBlueSquare not found\n");
+			continue;
 		}			
 
 		//find first green square
@@ -77,6 +104,7 @@ void detect_landmark(){
 			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
+			continue;
 		}		
 
 		//find second green square under first blue square
@@ -84,6 +112,7 @@ void detect_landmark(){
 			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
+			continue;
 		}		
 
 		// find second blue square after second green square X and after first blue square y
@@ -91,12 +120,10 @@ void detect_landmark(){
 			printf("1BlueSquare found at (%3d,%3d)\n", b1_s.x, b1_s.y);
 		} else {
 			printf("BlueSquare not found\n");
+			continue;
 		}			
 
-		if( 	(abs(g_s.x - b_e.x)   < 80) + // first green square is close to the end of the first blue square
-			(abs(g1_s.y - b_e.y)  < 80) + // second green square is under first blue square
-			(abs(g1_s.x - b_s.x)  < 80) + 
-			(abs(b1_s.y - g_s.y)  < 80) > 2 ) // second blue square is under the first green square
+		if(!0) // second blue square is under the first green square
 			        {
 
 			printf("LAHNDMARKDETECTED\n\n");
@@ -105,6 +132,14 @@ void detect_landmark(){
                                               (abs(g1_s.y - b_e.y)  < 80),
 					      (abs(g1_s.x - b_s.x)  < 80),
 					      (abs(b1_s.y - g_s.y)  < 80));
+				
+			printf("Rendering\n\n");
+			SDL_RenderClear(renderer);
+			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
+			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
+			SDL_RenderPresent(renderer);
+			int status = 0;
+			pthread_exit(&status);
 
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
@@ -117,22 +152,17 @@ void detect_landmark(){
 					      (abs(b1_s.y - g_s.y)  < 80));
 		}
 
-			printf("Rendering\n\n");
-			SDL_RenderClear(renderer);
-			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
-			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-			SDL_RenderPresent(renderer);
-		b_s.x = 0; b_s.y = 0;
-		b_e.x = 0; b_e.y = 0;
+		b_s.x = -1; b_s.y = -1;
+		b_e.x = -1; b_e.y = -1;
 
-                g_s.x = 0; g_e.x = 0;
-		g_e.x = 0; g_e.y = 0;
+                g_s.x = -1; g_e.x = -1;
+		g_e.x = -1; g_e.y = -1;
 
-                b1_s.x = 0; b1_s.y = 0; 
-		b1_e.x = 0; b1_e.y = 0; 
+                b1_s.x = -1; b1_s.y = -1; 
+		b1_e.x = -1; b1_e.y = -1; 
 
-                g1_s.x = 0; g1_s.y = 0;
-		g1_e.x = 0; g1_e.y = 0; 
+                g1_s.x = -1; g1_s.y = -1;
+		g1_e.x = -1; g1_e.y = -1; 
 
 
 
@@ -257,14 +287,14 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
+		if((pixCountY[y] < PIX_THRESHOLD + 50) && ((pixCountY[y+1] >= PIX_THRESHOLD + 50))) {
 			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
+		if((pixCountY[y] >= PIX_THRESHOLD + 50) && ((pixCountY[y+1] < PIX_THRESHOLD + 50))) {
 			out_edge = y;
 			break;
 		}
@@ -347,25 +377,28 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
 
-	for(y=b_s->y; y < b_e->y; y++) {
-		shMemPtr[y +(b_s->x % height)* width ] = (unsigned char)0x0000ff00;
-		shMemPtr[y +((b_s->x + 1 )% height)* width ] = (unsigned char)0x0000ff00;
-	}	
-	for(y=b_s->y; y < b_e->y; y++) {
-		shMemPtr[y +((b_s->x - 1 )% height)* width ] = (unsigned char)0x0000ff00;
-	}	
-
-	for(x=b_s->x; x < b_e->x; x++) {
-		shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
-		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
-	}	
-	for(x=b_s->x; x < b_e->x; x++) {
-		shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
-		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
-	}	
 	
-	if(cm_x >= 0 && cm_y >= 0)
+	if(cm_x >= 0 && cm_y >= 0){
+
+		for(y=b_s->x; y < b_e->y; y++) {
+			shMemPtr[y] = (unsigned char)0x0000ff00;
+		}	
+		for(y=b_s->x; y < b_e->y; y++) {
+			shMemPtr[y + (b_e->y % height) * width ] = (unsigned char)0x0000ff00;
+			shMemPtr[y + ((b_e->y - 1) % height) * width ] = (unsigned char)0x0000ff00;
+		}	
+
+		//colunas
+		for(x=b_s->y; x < b_e->y; x++) {
+			shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0x0000ff00;
+			shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0x0000ff00;
+		}	
+		for(x=b_s->y; x < b_e->y; x++) {
+			shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0x0000ff00;
+			shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0x0000ff00;
+		}	
 		return 0;	// Success
+	}
 	else
 		return -1; // No objecty
 }
@@ -487,14 +520,14 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
+		if((pixCountY[y] < PIX_THRESHOLD + 50) && ((pixCountY[y+1] >= PIX_THRESHOLD + 50))) {
 			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
+		if((pixCountY[y] >= PIX_THRESHOLD + 50) && ((pixCountY[y+1] < PIX_THRESHOLD + 50))) {
 			out_edge = y;
 			break;
 		}
@@ -572,8 +605,26 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
 	
-	if(cm_x >= 0 && cm_y >= 0)
+	if(cm_x >= 0 && cm_y >= 0){
+
+	//for(y=g_s->y; y < g_e->y; y++) {
+	//	shMemPtr[y +(g_s->x % height)* width ] = (unsigned char)0xFFFFff00;
+	//	shMemPtr[y +((g_s->x + 1 )% height)* width ] = (unsigned char)0xFFFFff00;
+	//}	
+	//for(y=g_s->y; y < g_e->y; y++) {
+	//	shMemPtr[y +((g_s->x - 1 )% height)* width ] = (unsigned char)0xFFFFff00;
+	//}	
+
+	//for(x=g_s->x; x < g_e->x; x++) {
+	//	shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
+	//	shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
+	//}	
+	//for(x=g_s->x; x < g_e->x; x++) {
+	//	shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
+	//		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
+	//	}	
 		return 0;	// Success
+	}
 	else
 		return -1; // No objecty
 }

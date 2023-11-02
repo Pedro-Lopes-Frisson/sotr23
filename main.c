@@ -77,6 +77,7 @@ sem_t *newDataSemAddr = NULL; /* Pointer to semaphore */
 pthread_t tIdWork[100];
 int tid[100];
 
+/* SDL vars */
 SDL_Event event;
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -175,19 +176,19 @@ int main(int argc, char *argv[]) {
       printf("[shared memory reservation] Can't get file descriptor...\n\r");
   }
 
-  SDL_Init(SDL_INIT_VIDEO);
-  window =
-      SDL_CreateWindow(appName, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                       width, height, SDL_WINDOW_RESIZABLE);
-  renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-  /* Limit the window size so that it cannot */
-  /* be smaller than teh webcam image size */
-  SDL_SetWindowMinimumSize(window, width, height);
-  SDL_RenderSetLogicalSize(renderer, width, height);
-  SDL_RenderSetIntegerScale(renderer, 1);
-  screen_texture =
-      SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888,
-                        SDL_TEXTUREACCESS_STREAMING, width, height);
+//SDL_Init(SDL_INIT_VIDEO);
+//window =
+//    SDL_CreateWindow("Image Display", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+//                     640, 360, SDL_WINDOW_RESIZABLE);
+//renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+///* Limit the window size so that it cannot */
+///* be smaller than teh webcam image size */
+//SDL_SetWindowMinimumSize(window, 640, 360);
+//SDL_RenderSetLogicalSize(renderer, 640, 360);
+//SDL_RenderSetIntegerScale(renderer, 1);
+//screen_texture =
+//    SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888,
+//                      SDL_TEXTUREACCESS_STREAMING, 640, 360);
   
   /* -------------------TASKS------------------- */
 
@@ -338,20 +339,20 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0) {
+  if (frameCounter % 1 == 0 && FALSE) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
 
-    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+    if ((sem_post(&displayImageCR)) != 0 ) { /* enter monitor */
         perror("Error posting semapore for image display");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
   }
-  if (frameCounter % 5 == 0) {
+  if (frameCounter % 15 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
@@ -359,7 +360,7 @@ void callTasks(int frameCounter) {
     }
 	//printf("Released landmark thread\n");
   }
-  if (frameCounter % 8 == 0) {
+  if (frameCounter % 8 == 0&& FALSE) {
     if ((sem_post(&redCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
