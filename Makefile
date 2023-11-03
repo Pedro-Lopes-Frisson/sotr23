@@ -10,8 +10,8 @@ LIBS = $(shell $(SDL2_CONFIG) --libs)
 CFLAGS += -I/usr/local/include
 LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 
-OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o detectRedSquare.o varsDisplayer.o
-HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h include/landmarkDetector.h detectRedSquare.h include/varsDisplayer.h
+OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o detectRedSquare.o
+HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h include/landmarkDetector.h include/detectRedSquare.h include/varsDisplayer.h
 
 all: webCamCapture cab imageViewer objDetector landmarkDetector detectRedSquare varsDisplayer main
 .PHONY: all
@@ -39,7 +39,7 @@ detectRedSquare: src/detectRedSquare.c include/detectRedSquare.h include/point.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
 varsDisplayer: src/varsDisplayer.c include/varsDisplayer.h
-	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
+	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS)
 
 .PHONY: clean 
 

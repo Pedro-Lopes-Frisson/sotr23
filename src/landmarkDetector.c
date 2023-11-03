@@ -26,8 +26,8 @@
 
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
-#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
-#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE_GREEN 		1.5 		// minimum ratio between Blue and other colors to be considered blue
 #define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 #define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 
@@ -103,7 +103,8 @@ void detect_landmark(){
 			        {
 
 			printf("LAHNDMARKDETECTED\n\n");
-			found_landamark(b_e.x, b_e.y);
+			// found_landamark(b_e.x, b_e.y);
+			// TODO: send to shmem
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);

@@ -61,18 +61,27 @@ struct IMAGE_DISPLAY *display = NULL;      /* Image displayer struct */
 #define SHMEMNAMESIZE 100
 char shMemName[SHMEMNAMESIZE]; /* name must start with "/" and contain up to 255
                                   chars withou further "/" */
+char varDispShMemName[SHMEMNAMESIZE];
+
 int shMemSize = 0;             /* Size of shmem area, in bytes */
 #define SEMNAMESIZE 100
 char newDataSemName[SEMNAMESIZE]; /* just chars, please*/
+char varDispSemName[SEMNAMESIZE]; /* just chars, please*/
 
+char varDispShMemActiveFlag = 0;
 char shMemActiveFlag =
     0; /* Flags to signal that shmem/sem were indicated by the user */
 char newDataSemActiveFlag = 0;
+char varDispSemActiveFlag = 0;
 
 int fd = 0; /* File descriptor for shared memory */
+int varDispFd = 0;
 
 void *shMemPtr = NULL;        /* Pointer top shered memory region */
 sem_t *newDataSemAddr = NULL; /* Pointer to semaphore */
+
+void *varDispShMemPtr = NULL; /* Pointer top shered memory region */
+sem_t *varDispSemAddr = NULL; /* Pointer to semaphore */
 
 pthread_t tIdWork[100];
 int tid[100];
@@ -104,6 +113,9 @@ void help(const char *procname) {
   printf("\t \t [-m]: shared memory name, in the form /string with no spaces. "
          "Should start with \"/\" and have no further \"/\"\n");
   printf("\t \t [-s]: semaphore name, in the form string with no spaces. \n");
+  printf("\t \t [-v]: shared memory name for the var display, in the form /string with no spaces. "
+         "Should start with \"/\" and have no further \"/\"\n");
+  printf("\t \t [-d]: semaphore name for the var display, in the form string with no spaces. \n");
 }
 
 /* **************************************************
@@ -118,7 +130,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  while ((opt = getopt(argc, argv, "hx:y:n:m:s:")) != -1) {
+  while ((opt = getopt(argc, argv, "hx:y:n:m:s:v:d:")) != -1) {
     switch (opt) {
     case 'x':
       width = atoi(optarg);
@@ -154,6 +166,16 @@ int main(int argc, char *argv[]) {
       strcpy(newDataSemName, optarg);
       newDataSemActiveFlag = 1;
       break;
+    case 'v':
+      printf("optarg -v: %s\n", optarg);
+      strcpy(varDispShMemName, optarg);
+      varDispShMemActiveFlag = 1;
+      break;
+    case 'd':
+      printf("optarg -d: %s\n", optarg);
+      strcpy(varDispSemName, optarg);
+      varDispSemActiveFlag = 1;
+      break;
     case 'h':
     default:
       help(argv[0]);
@@ -166,14 +188,6 @@ int main(int argc, char *argv[]) {
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
   open_rt_database();
-
-  fd = shm_open(shMemName,    /* Open file */
-                O_RDWR,       /* Open for read/write */
-                accessPerms); /* set access permissions */
-  if (fd < 0)
-  {
-      printf("[shared memory reservation] Can't get file descriptor...\n\r");
-  }
 
   SDL_Init(SDL_INIT_VIDEO);
   window =
@@ -293,6 +307,44 @@ int main(int argc, char *argv[]) {
   );
   if (newDataSemAddr == SEM_FAILED) {
     printf("[semaphore creation] Error creating semaphore \n\r");
+    return -1;
+  }
+  printf("Semaphore created\n\r");
+
+  /* get shared memory for var display */
+  varDispFd = shm_open(varDispShMemName,    /* Open file */
+                O_RDWR,       /* Open for read/write */
+                accessPerms); /* set access permissions */
+  if (varDispFd < 0) {
+    printf("[varDisp shared memory reservation] Can't get file descriptor...\n\r");
+    return -1;
+  }
+  printf("Var Display shared memory file descriptor obtained\n\r");
+
+  int size = sizeof(struct detected_obj) * n;
+
+  /* Get the pointer */
+  varDispShMemPtr = mmap(NULL,                   /* no hints on address */
+                  size,              /* shmem size, in bytes */
+                  PROT_READ | PROT_WRITE, /* allow read and write */
+                  MAP_SHARED, /* modifications visible to other processes */
+                  varDispFd,         /* file descriptor */
+                  0           /* no offset */
+  );
+  if (varDispShMemPtr == MAP_FAILED) {
+    printf("[varDisp shared memory reservation] mmap failed... \n\r");
+    return -1;
+  }
+  printf("Shared memory pointer obtained\n\r");
+
+  /* Create semaphore */
+  varDispSemAddr = sem_open(varDispSemName, /* semaphore name */
+                            O_CREAT,        /* create the semaphore */
+                            accessPerms,    /* protection perms */
+                            0               /* initial value */
+  );
+  if (varDispSemAddr == SEM_FAILED) {
+    printf("[varDisp semaphore creation] Error creating semaphore \n\r");
     return -1;
   }
   printf("Semaphore created\n\r");

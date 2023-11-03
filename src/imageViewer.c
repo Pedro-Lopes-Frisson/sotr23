@@ -36,10 +36,13 @@ void display_image() {
         }
 
         struct CAB_BUFFER *c = getmes();
+        unsigned char pixels[width * height * IMGBYTESPERPIXEL];
+        memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
+        unget(c);
+
         SDL_RenderClear(renderer);
-        SDL_UpdateTexture(screen_texture, NULL, c->img, width * IMGBYTESPERPIXEL );
+        SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
         SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
         SDL_RenderPresent(renderer);
-        unget(c);
     }
 }
