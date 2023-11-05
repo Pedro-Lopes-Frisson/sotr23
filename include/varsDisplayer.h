@@ -1,9 +1,3 @@
-struct detected_obj{
-	int cm_x;
-	int cm_y;
-	char obj_name[50];
-};
-
 void help(char *progname);
 
 // void open_rt_database(void);

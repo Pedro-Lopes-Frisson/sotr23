@@ -18,7 +18,7 @@
 
 #include "../include/cab.h"
 #include "../include/objDetector.h"
-#include "../include/varsDisplayer.h" // 
+#include "../include/object.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -29,6 +29,11 @@
 
 extern int width, height;
 extern sem_t detectObstaclesCR;
+
+extern char varDispShMemActiveFlag = 0;
+extern char varDispSemActiveFlag = 0;
+extern void *varDispShMemPtr;
+extern sem_t *varDispSemAddr;
 
 void detect_obstacles_spiral() {
 /* Let's consider that the ground is white and the obstacles are of a different
@@ -217,6 +222,28 @@ void detect_obstacles_spiral() {
     if (cm_x >= 0 && cm_y >= 0) {
 	    // found_ball(cm_x, cm_y);
       // TODO: send to shmem
+
+      if (varDispShMemActiveFlag) {
+        // create object
+        struct detected_obj obj;
+
+        obj.cm_x = cm_x;
+        obj.cm_y = cm_y;
+        memcpy(obj.obj_name, "ball", 4);
+
+        // copy to shmem
+        memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+      }
+
+      if (varDispSemActiveFlag) {
+        // post semaphore
+        if ((sem_post(varDispSemAddr)) != 0) {
+          perror("Error posting semapore for image display"); /* save error in errno */
+          int status = EXIT_FAILURE;
+          pthread_exit(&status);
+        }
+      }
+
       printf("ball at (%d,%d)\n\r", cm_x, cm_y);
     }
     else
