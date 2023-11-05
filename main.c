@@ -86,6 +86,7 @@ sem_t *varDispSemAddr = NULL; /* Pointer to semaphore */
 pthread_t tIdWork[100];
 int tid[100];
 
+/* SDL vars */
 SDL_Event event;
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -390,20 +391,20 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0) {
+  if (frameCounter % 1 == 0 && FALSE) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
 
-    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+    if ((sem_post(&displayImageCR)) != 0 ) { /* enter monitor */
         perror("Error posting semapore for image display");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
   }
-  if (frameCounter % 5 == 0) {
+  if (frameCounter % 15 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
@@ -411,7 +412,7 @@ void callTasks(int frameCounter) {
     }
 	//printf("Released landmark thread\n");
   }
-  if (frameCounter % 8 == 0) {
+  if (frameCounter % 8 == 0&& FALSE) {
     if ((sem_post(&redCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;

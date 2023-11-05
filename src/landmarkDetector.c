@@ -7,6 +7,7 @@
 #include  "../include/landmarkDetector.h"
 #include  "../include/cab.h"
 #include "../include/varsDisplayer.h" // 
+#include <SDL2/SDL_pixels.h>
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <string.h>
@@ -35,10 +36,12 @@
 extern int width, height;
 extern sem_t landmarkCR;
 
-extern SDL_Event event;
-extern SDL_Window *window;
-extern SDL_Renderer *renderer;
-extern SDL_Texture *screen_texture;
+static SDL_Event event;
+static SDL_Window *window;
+static SDL_Renderer *renderer;
+static SDL_Renderer *renderer_lines;
+static SDL_Texture *screen_texture;
+
 static int pixCountX[MAX_WIDTH];
 static int pixCountY[MAX_HEIGHT];
 static int i,x,y;					/* Indexes */
@@ -53,7 +56,38 @@ void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
 	struct CAB_BUFFER *c = NULL;
 
+		SDL_Init(SDL_INIT_VIDEO);
+
+		window = SDL_CreateWindow("WebCamCapture1",
+			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			width, height,
+			SDL_WINDOW_RESIZABLE);
+
+		renderer = SDL_CreateRenderer(window,
+			-1, SDL_RENDERER_PRESENTVSYNC);
+
+		width = width;
+		height = height;
+
+		/* Limit the window size so that it cannot */
+		/* be smaller than teh webcam image size */
+		SDL_SetWindowMinimumSize(window, width, height);
+
+		SDL_RenderSetLogicalSize(renderer, width, height);
+		SDL_RenderSetIntegerScale(renderer, 1);
+
+		screen_texture = SDL_CreateTexture(renderer,
+			SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING,
+			width, height);
+
+		renderer_lines = SDL_CreateRenderer(window,
+			-1, SDL_RENDERER_PRESENTVSYNC);
+
+		SDL_RenderSetLogicalSize(renderer_lines, width, height);
+		SDL_RenderSetIntegerScale(renderer_lines, 1);
+
     while(1){
+	    printf("\n\n");
 	    if (c != NULL)
 	    	unget(c);
         if ((sem_wait(&landmarkCR)) != 0) { /* enter monitor */
@@ -68,12 +102,12 @@ void detect_landmark(){
 		if(!imgFindBlueSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
 			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
-			printf("BlueSquare not found\n");
+			printf("\n\n\n\nBlueSquare not found\n");
 			continue;
 		}			
 
 		//find first green square
-		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g_s, &g_e )) {
+		if(!imgFindGreenSquare(pixels,b_e.x, b_s.y, width, height, &g_s, &g_e )) {
 			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
@@ -81,7 +115,7 @@ void detect_landmark(){
 		}		
 
 		//find second green square under first blue square
-		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g1_s, &g1_e )) {
+		if(!imgFindGreenSquare(pixels,b_s.x, b_e.y, width, height, &g1_s, &g1_e )) {
 			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
@@ -90,19 +124,17 @@ void detect_landmark(){
 
 		// find second blue square after second green square X and after first blue square y
 		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
-			printf("1BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
+			printf("1BlueSquare found at (%3d,%3d)\n", b1_s.x, b1_s.y);
 		} else {
 			printf("BlueSquare not found\n");
 			continue;
 		}			
 
-		if( 	(abs(g_s.x - b_e.x )< 50) && // first green square is close to the end of the first blue square
-			(abs(g1_s.y - b_e.y )<50) && // second green square is under first blue square
-			(abs(g1_s.x - b_s.x )<50) && 
-			(abs(b1_s.y - g_s.y)<50) ) // second blue square is under the first green square
+		if((abs(g_s.x - b_e.x)   < 80)+
+                                              (abs(g1_s.y - b_e.y)  < 80)+
+					      (abs(g1_s.x - b_s.x)  < 80)+
+					      (abs(b1_s.y - g_s.y)  < 80) > 2) // second blue square is under the first green square
 			        {
-
-			printf("LAHNDMARKDETECTED\n\n");
 			// found_landamark(b_e.x, b_e.y);
 			// TODO: send to shmem
 		}else{
@@ -110,19 +142,23 @@ void detect_landmark(){
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
 			printf("%d,%d,%d,%d\n", g1_s.x, g1_s.y, g1_e.x, g1_e.y);
 			printf("%d,%d,%d,%d\n", b1_s.x, b1_s.y, b1_e.x, b1_e.y);
+			printf("Bools : %d,%d,%d,%d\n",(abs(g_s.x - b_e.x)   < 80),
+                                              (abs(g1_s.y - b_e.y)  < 80),
+					      (abs(g1_s.x - b_s.x)  < 80),
+					      (abs(b1_s.y - g_s.y)  < 80));
 		}
 
-		b_s.x = 0; b_s.y = 0;
-		b_e.x = 0; b_e.y = 0;
+		b_s.x = -1; b_s.y = -1;
+		b_e.x = -1; b_e.y = -1;
 
-                g_s.x = 0; g_e.x = 0;
-		g_e.x = 0; g_e.y = 0;
+                g_s.x = -1; g_e.x = -1;
+		g_e.x = -1; g_e.y = -1;
 
-                b1_s.x = 0; b1_s.y = 0; 
-		b1_e.x = 0; b1_e.y = 0; 
+                b1_s.x = -1; b1_s.y = -1; 
+		b1_e.x = -1; b1_e.y = -1; 
 
-                g1_s.x = 0; g1_s.y = 0;
-		g1_e.x = 0; g1_e.y = 0; 
+                g1_s.x = -1; g1_s.y = -1;
+		g1_e.x = -1; g1_e.y = -1; 
 
 
 
@@ -254,11 +290,12 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
+		if((pixCountY[y] >=  PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
 			out_edge = y;
 			break;
 		}
 	}	
+			
 			
 	/* Process edges to determine center of mass existence and position */ 		
 	/* If object in the left image edge */
@@ -270,6 +307,7 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
 
 	
 	if((in_edge >= 0) && (out_edge >= 0))
@@ -318,6 +356,7 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
 		
@@ -333,9 +372,14 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	printf("Start X: %d\n", in_edge );
 	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
+
 	
-	if(cm_x >= 0 && cm_y >= 0)
+	if(cm_x >= 0 && cm_y >= 0){
+		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
+		SDL_RenderDrawLine(renderer, b_s->x, b_s->y, b_e->x, b_e->y);
+
 		return 0;	// Success
+	}
 	else
 		return -1; // No objecty
 }
@@ -398,10 +442,8 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	for (x = startX; x < width; x++) {	
 		imgPtr = shMemPtr + x * 4; // Offset to the xth column in the firts row
 		for (y = startY; y < height; y++) {		
-			if(*(imgPtr+1) > (MAGNITUDE_GREEN * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE_GREEN * (*(imgPtr+2))))
+			if(*(imgPtr+1) > ((*imgPtr) * MAGNITUDE_GREEN) && *(imgPtr+1) > ((*(imgPtr+2)) * MAGNITUDE_GREEN))
 				pixCountX[x]+=1;
-
-			
 			/* Step to teh same pixel i the next row */
 			imgPtr+=4*width;
 		}		
@@ -420,14 +462,14 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	}
 	
 	/* Apply a simple averaging filter to pixe count */
-	for(x=startX; x < (MAX_WIDTH - LPF_SAMPLES); x++) {
+	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES); x++) {
 		for(i = 1; i < LPF_SAMPLES; i++) {
 			pixCountX[x] += pixCountX[x+i];
 		}
 		pixCountX[x] = pixCountX[x] / LPF_SAMPLES; 
 	}
 	
-	for(y=startX; y < (MAX_HEIGHT - LPF_SAMPLES); y++) {
+	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES); y++) {
 		for(i = 1; i < LPF_SAMPLES; i++) {
 			pixCountY[y] += pixCountY[y+i];
 		}
@@ -480,6 +522,11 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 		out_edge = in_edge;
 		in_edge =t;
 	}
+
+	for(y=in_edge; y < out_edge; y++) {
+		shMemPtr[y] = (unsigned char)0xffffff00;
+	}	
+
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_y = (out_edge-in_edge)/2+in_edge;
 		
@@ -528,14 +575,19 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
+
 	g_s->x = in_edge;
 	g_e->x = out_edge;
 	printf("Start X: %d\n", in_edge );
 	printf("end X: %d\n", out_edge );
 	/* Return with suitable error code */
 	
-	if(cm_x >= 0 && cm_y >= 0)
+	if(cm_x >= 0 && cm_y >= 0){
+
+		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
+		SDL_RenderDrawLine(renderer, g_s->x, g_s->y, g_e->x, g_e->y);
 		return 0;	// Success
+	}
 	else
 		return -1; // No objecty
 }
