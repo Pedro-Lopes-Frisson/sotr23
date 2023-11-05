@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "cab.h": "c",
-        "objdetector.h": "c"
+        "objdetector.h": "c",
+        "typeinfo": "c"
     }
 }

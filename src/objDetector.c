@@ -214,8 +214,11 @@ void detect_obstacles_spiral() {
     if ((in_edge >= 0) && (out_edge >= 0))
       cm_x = (out_edge - in_edge) / 2 + in_edge;
 
-    if (cm_x >= 0 && cm_y >= 0)
-	found_ball(cm_x, cm_y);
+    if (cm_x >= 0 && cm_y >= 0) {
+	    // found_ball(cm_x, cm_y);
+      // TODO: send to shmem
+      printf("ball at (%d,%d)\n\r", cm_x, cm_y);
+    }
     else
       printf("objectOOOOOOOOOOOOOO not found\n\r"); // No object found
 

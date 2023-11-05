@@ -23,7 +23,6 @@
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
 #define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
-#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
 #define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 #define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 
@@ -57,7 +56,8 @@ void detect_red_square(){
         unget(c);
 	// first find blue square
 	if(!imgFindRedSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
-		found_object(b_s.x + b_e.x / 2 + b_s.x, b_s.y + b_e.y / 2 + b_s.y);
+		// found_object(b_s.x + b_e.x / 2 + b_s.x, b_s.y + b_e.y / 2 + b_s.y);
+		// TODO: send to shmem
 	} else {
 		printf("RedSquare not found\n");
 	}			
@@ -112,7 +112,7 @@ int imgFindRedSquare(unsigned char * shMemPtr, int startX, int startY, int width
 			// imgPtr -> Blue 
 			// imgPtr + 1 -> green
 			// imgPtr + 2 -> red
-			if(*(imgPtr+2) > (MAGNITUDE * (*(imgPtr+1))) && *(imgPtr + 2) > (MAGNITUDE * (*(imgPtr+1))))
+			if(*(imgPtr+2) > (MAGNITUDE * (*(imgPtr))) && *(imgPtr + 2) > (MAGNITUDE * (*(imgPtr+1))))
 				pixCountY[y]+=1;
 			
 			/* Step to next pixel */
@@ -124,7 +124,7 @@ int imgFindRedSquare(unsigned char * shMemPtr, int startX, int startY, int width
 	for (x = startX; x < width; x++) {	
 		imgPtr = shMemPtr + x * 4; // Offset to the xth column in the firts row
 		for (y = startY; y < height; y++) {		
-			if(*(imgPtr+2) > (MAGNITUDE * (*(imgPtr+1))) && *(imgPtr + 2) > (MAGNITUDE * (*(imgPtr+1))))
+			if(*(imgPtr+2) > (MAGNITUDE * (*(imgPtr))) && *(imgPtr + 2) > (MAGNITUDE * (*(imgPtr+1))))
 				pixCountX[x]+=1;
 
 			

@@ -27,8 +27,8 @@
 
 /* Note: the following settings are strongly dependent on illumination intensity and color, ...*/
 /* 		There are much more robust approaches! */
-#define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
-#define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE 		1.5 		// minimum ratio between Blue and other colors to be considered blue
+#define MAGNITUDE_GREEN 		1.5 		// minimum ratio between Blue and other colors to be considered blue
 #define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
 #define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 
@@ -135,19 +135,8 @@ void detect_landmark(){
 					      (abs(g1_s.x - b_s.x)  < 80)+
 					      (abs(b1_s.y - g_s.y)  < 80) > 2) // second blue square is under the first green square
 			        {
-
-			printf("LAHNDMARKDETECTED\n\n");
-			found_landamark(b_e.x, b_e.y);
-			printf("Bools : %d,%d,%d,%d\n",(abs(g_s.x - b_e.x)   < 80),
-                                              (abs(g1_s.y - b_e.y)  < 80),
-					      (abs(g1_s.x - b_s.x)  < 80),
-					      (abs(b1_s.y - g_s.y)  < 80));
-				
-			printf("Rendering\n\n");
-			SDL_RenderClear(renderer);
-			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
-			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
-			SDL_RenderPresent(renderer);
+			// found_landamark(b_e.x, b_e.y);
+			// TODO: send to shmem
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
