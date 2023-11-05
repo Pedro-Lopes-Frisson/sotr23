@@ -29,8 +29,8 @@
 /* 		There are much more robust approaches! */
 #define MAGNITUDE 		1.1 		// minimum ratio between Blue and other colors to be considered blue
 #define MAGNITUDE_GREEN 		1.1 		// minimum ratio between Blue and other colors to be considered blue
-#define PIX_THRESHOLD 	80 	// Minimum number of pixels to be considered an object of interest 
-#define LPF_SAMPLES		8 	// Simple average for filtering - number of samples to average 
+#define PIX_THRESHOLD 	30 	// Minimum number of pixels to be considered an object of interest 
+#define LPF_SAMPLES		4 	// Simple average for filtering - number of samples to average 
 
 
 extern int width, height;
@@ -39,6 +39,7 @@ extern sem_t landmarkCR;
 static SDL_Event event;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
+static SDL_Renderer *renderer_lines;
 static SDL_Texture *screen_texture;
 
 static int pixCountX[MAX_WIDTH];
@@ -79,6 +80,12 @@ void detect_landmark(){
 			SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING,
 			width, height);
 
+		renderer_lines = SDL_CreateRenderer(window,
+			-1, SDL_RENDERER_PRESENTVSYNC);
+
+		SDL_RenderSetLogicalSize(renderer_lines, width, height);
+		SDL_RenderSetIntegerScale(renderer_lines, 1);
+
     while(1){
 	    printf("\n\n");
 	    if (c != NULL)
@@ -100,7 +107,7 @@ void detect_landmark(){
 		}			
 
 		//find first green square
-		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g_s, &g_e )) {
+		if(!imgFindGreenSquare(pixels,b_e.x, b_s.y, width, height, &g_s, &g_e )) {
 			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
@@ -108,7 +115,7 @@ void detect_landmark(){
 		}		
 
 		//find second green square under first blue square
-		if(!imgFindGreenSquare(pixels,b_e.x, b_e.y, width, height, &g1_s, &g1_e )) {
+		if(!imgFindGreenSquare(pixels,b_s.x, b_e.y, width, height, &g1_s, &g1_e )) {
 			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
@@ -123,7 +130,10 @@ void detect_landmark(){
 			continue;
 		}			
 
-		if(!0) // second blue square is under the first green square
+		if((abs(g_s.x - b_e.x)   < 80)+
+                                              (abs(g1_s.y - b_e.y)  < 80)+
+					      (abs(g1_s.x - b_s.x)  < 80)+
+					      (abs(b1_s.y - g_s.y)  < 80) > 2) // second blue square is under the first green square
 			        {
 
 			printf("LAHNDMARKDETECTED\n\n");
@@ -138,9 +148,6 @@ void detect_landmark(){
 			SDL_UpdateTexture(screen_texture, NULL, pixels, width * IMGBYTESPERPIXEL );
 			SDL_RenderCopy(renderer, screen_texture, NULL, NULL);
 			SDL_RenderPresent(renderer);
-			int status = 0;
-			pthread_exit(&status);
-
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
@@ -287,14 +294,14 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] < PIX_THRESHOLD + 50) && ((pixCountY[y+1] >= PIX_THRESHOLD + 50))) {
+		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
 			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] >= PIX_THRESHOLD + 50) && ((pixCountY[y+1] < PIX_THRESHOLD + 50))) {
+		if((pixCountY[y] >=  PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
 			out_edge = y;
 			break;
 		}
@@ -379,24 +386,9 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 
 	
 	if(cm_x >= 0 && cm_y >= 0){
+		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
+		SDL_RenderDrawLine(renderer, b_s->x, b_s->y, b_e->x, b_e->y);
 
-		for(y=b_s->x; y < b_e->y; y++) {
-			shMemPtr[y] = (unsigned char)0x0000ff00;
-		}	
-		for(y=b_s->x; y < b_e->y; y++) {
-			shMemPtr[y + (b_e->y % height) * width ] = (unsigned char)0x0000ff00;
-			shMemPtr[y + ((b_e->y - 1) % height) * width ] = (unsigned char)0x0000ff00;
-		}	
-
-		//colunas
-		for(x=b_s->y; x < b_e->y; x++) {
-			shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0x0000ff00;
-			shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0x0000ff00;
-		}	
-		for(x=b_s->y; x < b_e->y; x++) {
-			shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0x0000ff00;
-			shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0x0000ff00;
-		}	
 		return 0;	// Success
 	}
 	else
@@ -461,10 +453,8 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	for (x = startX; x < width; x++) {	
 		imgPtr = shMemPtr + x * 4; // Offset to the xth column in the firts row
 		for (y = startY; y < height; y++) {		
-			if(*(imgPtr+1) > (MAGNITUDE_GREEN * (*imgPtr)) && *(imgPtr+1) > (MAGNITUDE_GREEN * (*(imgPtr+2))))
+			if(*(imgPtr+1) > ((*imgPtr) * MAGNITUDE_GREEN) && *(imgPtr+1) > ((*(imgPtr+2)) * MAGNITUDE_GREEN))
 				pixCountX[x]+=1;
-
-			
 			/* Step to teh same pixel i the next row */
 			imgPtr+=4*width;
 		}		
@@ -483,14 +473,14 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	}
 	
 	/* Apply a simple averaging filter to pixe count */
-	for(x=startX; x < (MAX_WIDTH - LPF_SAMPLES); x++) {
+	for(x=0; x < (MAX_WIDTH - LPF_SAMPLES); x++) {
 		for(i = 1; i < LPF_SAMPLES; i++) {
 			pixCountX[x] += pixCountX[x+i];
 		}
 		pixCountX[x] = pixCountX[x] / LPF_SAMPLES; 
 	}
 	
-	for(y=startX; y < (MAX_HEIGHT - LPF_SAMPLES); y++) {
+	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES); y++) {
 		for(i = 1; i < LPF_SAMPLES; i++) {
 			pixCountY[y] += pixCountY[y+i];
 		}
@@ -520,14 +510,14 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	
 	/* Detect rising edge - beginning */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] < PIX_THRESHOLD + 50) && ((pixCountY[y+1] >= PIX_THRESHOLD + 50))) {
+		if((pixCountY[y] < PIX_THRESHOLD) && ((pixCountY[y+1] >= PIX_THRESHOLD))) {
 			in_edge = y;
 			break;
 		}
 	}
 	/* Detect falling edge - ending */
 	for(y=0; y < (MAX_HEIGHT - LPF_SAMPLES -1); y++) {
-		if((pixCountY[y] >= PIX_THRESHOLD + 50) && ((pixCountY[y+1] < PIX_THRESHOLD + 50))) {
+		if((pixCountY[y] >= PIX_THRESHOLD) && ((pixCountY[y+1] < PIX_THRESHOLD))) {
 			out_edge = y;
 			break;
 		}
@@ -594,11 +584,9 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 		in_edge =t;
 	}
 	
-	for(y=in_edge; y < out_edge; y++) {
-		shMemPtr[(y % height) * width + (int)(y/height)] = (unsigned char)0xffffff00;
-	}	
 	if((in_edge >= 0) && (out_edge >= 0))
 		cm_x = (out_edge-in_edge)/2+in_edge;
+
 	g_s->x = in_edge;
 	g_e->x = out_edge;
 	printf("Start X: %d\n", in_edge );
@@ -607,22 +595,8 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	
 	if(cm_x >= 0 && cm_y >= 0){
 
-	//for(y=g_s->y; y < g_e->y; y++) {
-	//	shMemPtr[y +(g_s->x % height)* width ] = (unsigned char)0xFFFFff00;
-	//	shMemPtr[y +((g_s->x + 1 )% height)* width ] = (unsigned char)0xFFFFff00;
-	//}	
-	//for(y=g_s->y; y < g_e->y; y++) {
-	//	shMemPtr[y +((g_s->x - 1 )% height)* width ] = (unsigned char)0xFFFFff00;
-	//}	
-
-	//for(x=g_s->x; x < g_e->x; x++) {
-	//	shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
-	//	shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
-	//}	
-	//for(x=g_s->x; x < g_e->x; x++) {
-	//	shMemPtr[(x % height) * width + (int)(x/height)] = (unsigned char)0xffffff00;
-	//		shMemPtr[(x % height) * width + (int)(x/height) + 1] = (unsigned char)0xffffff00;
-	//	}	
+		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
+		SDL_RenderDrawLine(renderer, g_s->x, g_s->y, g_e->x, g_e->y);
 		return 0;	// Success
 	}
 	else
