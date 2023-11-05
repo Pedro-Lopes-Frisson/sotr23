@@ -39,7 +39,7 @@ detectRedSquare: src/detectRedSquare.c include/detectRedSquare.h include/point.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS) -pthread
 
 varsDisplayer: src/varsDisplayer.c include/varsDisplayer.h
-	$(CC) $(CFLAGS) $(LDIRS) $< -c $(LIBS)
+	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS)
 
 .PHONY: clean 
 

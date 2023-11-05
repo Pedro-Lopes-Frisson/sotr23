@@ -47,7 +47,7 @@
 
 /* Function prototypes */
 int main(int argc, char **argv);
-void help(const char *procname);
+static void help_main(const char *procname);
 void callTasks(int frameCounter);
 
 /* Global variables */
@@ -86,6 +86,7 @@ sem_t *varDispSemAddr = NULL; /* Pointer to semaphore */
 pthread_t tIdWork[100];
 int tid[100];
 
+/* SDL vars */
 SDL_Event event;
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -101,7 +102,7 @@ sem_t landmarkCR, displayImageCR, detectObstaclesCR, redCR;
 /* **************************************************
  * help() function
  *****************************************************/
-void help(const char *procname) {
+void help_main(const char *procname) {
   printf("Usage: %s [OPTIONS]\n", procname);
   printf("\t -h : print this help dialog\n");
   printf("\t -x : specify width in pixels of the images being captured by some "
@@ -126,7 +127,7 @@ int main(int argc, char *argv[]) {
 
   // if no arguments are passed, print help and exit
   if (argc == 1) {
-    help(argv[0]);
+    help_main(argv[0]);
     return -1;
   }
 
@@ -136,7 +137,7 @@ int main(int argc, char *argv[]) {
       width = atoi(optarg);
       if (width < 0 || width > MAX_WIDTH) {
         printf("Invalid x value.\n");
-        help(argv[0]);
+        help_main(argv[0]);
         return -1;
       }
       break;
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
       height = atoi(optarg);
       if (height < 0 || height > MAX_HEIGHT) {
         printf("Invalid y value.\n");
-        help(argv[0]);
+        help_main(argv[0]);
         return -1;
       }
       break;
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
       n = atoi(optarg);
       if (n < 1) {
         printf("Invalid n value.\n");
-        help(argv[0]);
+        help_main(argv[0]);
         return -1;
       }
       break;
@@ -178,7 +179,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'h':
     default:
-      help(argv[0]);
+      help_main(argv[0]);
       return -1;
     }
   }
@@ -187,7 +188,6 @@ int main(int argc, char *argv[]) {
   // create CAB structure
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
-  open_rt_database();
 
   SDL_Init(SDL_INIT_VIDEO);
   window =
@@ -404,20 +404,20 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0) {
+  if (frameCounter % 1 == 0 && FALSE) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
 
-    if ((sem_post(&displayImageCR)) != 0) { /* enter monitor */
+    if ((sem_post(&displayImageCR)) != 0 ) { /* enter monitor */
         perror("Error posting semapore for image display");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
   }
-  if (frameCounter % 5 == 0) {
+  if (frameCounter % 15 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
@@ -425,7 +425,7 @@ void callTasks(int frameCounter) {
     }
 	//printf("Released landmark thread\n");
   }
-  if (frameCounter % 8 == 0) {
+  if (frameCounter % 8 == 0&& FALSE) {
     if ((sem_post(&redCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
