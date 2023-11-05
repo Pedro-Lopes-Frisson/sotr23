@@ -4,7 +4,7 @@ struct detected_obj{
 	char obj_name[50];
 };
 
-void help(char *progname);
+static void help(char *progname);
 
 // void open_rt_database(void);
 // void found_object(int cm_x, int cm_y);
