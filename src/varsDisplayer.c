@@ -84,7 +84,7 @@ int main(int argc, char *argv[]){
     return -1;
   }
 
-  while ((opt = getopt(argc, argv, "hv:d:")) != -1) {
+  while ((opt = getopt(argc, argv, "hv:d:n:")) != -1) {
     switch (opt) {
     case 'v':
       printf("optarg -v: %s\n", optarg);
@@ -96,6 +96,10 @@ int main(int argc, char *argv[]){
       strcpy(varDispSemName, optarg);
       varDispSemActiveFlag = 1;
       break;
+    case 'n':
+      printf("optarg -n: %s\n", optarg);
+      n = atoi(optarg);
+      break;
     case 'h':
     default:
       help(argv[0]);
@@ -104,7 +108,7 @@ int main(int argc, char *argv[]){
   }
 
   fd = shm_open(varDispShMemName,    /* Open file */
-                O_RDWR,             /* Open for read/write */
+                O_RDWR | O_CREAT,             /* Open for read/write */
                 accessPerms);       /* set access permissions */
   if (fd < 0)
   {
