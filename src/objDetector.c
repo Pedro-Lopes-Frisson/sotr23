@@ -232,7 +232,7 @@ void detect_obstacles_spiral() {
         memcpy(obj.obj_name, "ball", 4);
 
         // copy to shmem
-        memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+	memcpy(&((struct detected_obj *)varDispShMemPtr)[1], &obj, sizeof(struct detected_obj));
       }
 
       if (varDispSemActiveFlag) {

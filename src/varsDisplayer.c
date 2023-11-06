@@ -1,10 +1,10 @@
 /******************************************************
  * Gonçalo Leal - 98008
  * goncalolealsilva@ua.pt
- * 
+ *
  * Pedro Lopes - 97827
  * pdfl@ua.pt
- * 
+ *
  * Responsible for displaying the variables in a window.
  */
 
@@ -12,18 +12,18 @@
 #include <fcntl.h>
 #include <getopt.h> // For getting command args
 #include <pthread.h>
+#include <semaphore.h> /* for semaphores */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <semaphore.h> /* for semaphores */
 #include <sys/mman.h> // For shmem and others
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 /* Custom includes */
-#include "../include/varsDisplayer.h"
 #include "../include/object.h"
+#include "../include/varsDisplayer.h"
 
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
@@ -54,14 +54,14 @@ static struct detected_obj objs[MAX_TASKS];
   (S_IRUSR | S_IWUSR | S_IRGRP |                                               \
    S_IWGRP) /* Read and write perms for user and group */
 #define SHMEMNAMESIZE 100
-char varDispShMemName[SHMEMNAMESIZE]; /* name must start with "/" and contain up to 255
-                                  chars withou further "/" */
-int shMemSize = 0;             /* Size of shmem area, in bytes */
+char varDispShMemName[SHMEMNAMESIZE]; /* name must start with "/" and contain up
+                                  to 255 chars withou further "/" */
+int shMemSize = 0;                    /* Size of shmem area, in bytes */
 #define SEMNAMESIZE 100
 char varDispSemName[SEMNAMESIZE]; /* just chars, please*/
 
 /* Flags to signal that shmem/sem were indicated by the user */
-char varDispShMemActiveFlag = 0; 
+char varDispShMemActiveFlag = 0;
 char varDispSemActiveFlag = 0;
 
 void *varDispShMemPtr = NULL; /* Pointer top shared memory region */
@@ -71,11 +71,12 @@ int fd = 0;                   /* File descriptor */
 extern int n;
 
 static void help(char *progname) {
-  printf("Usage: %s -v <shmem name> -d <sem name> -n <number of tasks>\n\r", progname);
+  printf("Usage: %s -v <shmem name> -d <sem name> -n <number of tasks>\n\r",
+         progname);
   printf("Example: %s -v /varDispShMem -d /varDispSem -n 3\n\r", progname);
 }
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
   int opt, n;
 
   // if no arguments are passed, print help and exit
@@ -107,22 +108,25 @@ int main(int argc, char *argv[]){
     }
   }
 
-  fd = shm_open(varDispShMemName,    /* Open file */
-                O_RDWR | O_CREAT,             /* Open for read/write */
-                accessPerms);       /* set access permissions */
-  if (fd < 0)
-  {
-      printf("[shared memory reservation] Can't get file descriptor...\n\r");
+  fd = shm_open(varDispShMemName, /* Open file */
+                O_RDWR | O_CREAT, /* Open for read/write */
+                accessPerms);     /* set access permissions */
+  if (fd < 0) {
+    printf("[shared memory reservation] Can't get file descriptor...\n\r");
   }
 
+  /* Set the file size to exactly the desired size */
+  ftruncate(fd, sizeof(struct detected_obj) * n /* shmem size, in bytes */
+  );                                            /* get the bytes */
   /* Get the pointer */
-  varDispShMemPtr = mmap(NULL,                   /* no hints on address */
-                  sizeof(struct detected_obj) * n,              /* shmem size, in bytes */
-                  PROT_READ | PROT_WRITE, /* allow read and write */
-                  MAP_SHARED, /* modifications visible to other processes */
-                  fd,         /* file descriptor */
-                  0           /* no offset */
-  );
+  varDispShMemPtr =
+      mmap(NULL,                            /* no hints on address */
+           sizeof(struct detected_obj) * n, /* shmem size, in bytes */
+           PROT_READ | PROT_WRITE,          /* allow read and write */
+           MAP_SHARED, /* modifications visible to other processes */
+           fd,         /* file descriptor */
+           0           /* no offset */
+      );
   if (varDispShMemPtr == MAP_FAILED) {
     printf("[shared memory reservation] mmap failed... \n\r");
     return -1;
@@ -146,7 +150,20 @@ int main(int argc, char *argv[]){
       // TODO: get data from shared memory
 
       printf("---------------------------\n\r");
-      printf("%s at (%d,%d)\n", objs[0].obj_name, objs[0].cm_x, objs[0].cm_y);
+      printf("%s at (%d,%d)\n",
+             ((struct detected_obj *)varDispShMemPtr)[0].obj_name,
+             ((struct detected_obj *)varDispShMemPtr)[0].cm_x,
+             ((struct detected_obj *)varDispShMemPtr)[0].cm_y);
+      printf("---------------------------\n\r");
+      printf("%s at (%d,%d)\n",
+             ((struct detected_obj *)varDispShMemPtr)[1].obj_name,
+             ((struct detected_obj *)varDispShMemPtr)[1].cm_x,
+             ((struct detected_obj *)varDispShMemPtr)[1].cm_y);
+      printf("---------------------------\n\r");
+      printf("%s at (%d,%d)\n",
+             ((struct detected_obj *)varDispShMemPtr)[2].obj_name,
+             ((struct detected_obj *)varDispShMemPtr)[2].cm_x,
+             ((struct detected_obj *)varDispShMemPtr)[2].cm_y);
       printf("---------------------------\n\r");
     }
   }

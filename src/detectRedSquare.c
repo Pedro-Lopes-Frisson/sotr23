@@ -76,7 +76,7 @@ void detect_red_square(){
 			memcpy(obj.obj_name, "square", 7);
 
 			// copy to shmem
-			memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+			memcpy(&((struct detected_obj *)varDispShMemPtr)[0], &obj, sizeof(struct detected_obj));
 		}
 
 		if (varDispSemActiveFlag) {

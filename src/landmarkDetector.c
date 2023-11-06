@@ -153,7 +153,7 @@ void detect_landmark(){
 				memcpy(obj.obj_name, "landmark", 8);
 
 				// copy to shmem
-				memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+				memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
 			}
 
 			if (varDispSemActiveFlag) {
