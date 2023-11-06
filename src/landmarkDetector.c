@@ -6,7 +6,8 @@
 #include  "../include/point.h"
 #include  "../include/landmarkDetector.h"
 #include  "../include/cab.h"
-#include "../include/varsDisplayer.h" // 
+#include "../include/object.h"
+
 #include <SDL2/SDL_pixels.h>
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -35,6 +36,11 @@
 
 extern int width, height;
 extern sem_t landmarkCR;
+
+extern char varDispShMemActiveFlag;
+extern char varDispSemActiveFlag;
+extern void *varDispShMemPtr;
+extern sem_t *varDispSemAddr;
 
 static SDL_Event event;
 static SDL_Window *window;
@@ -137,6 +143,28 @@ void detect_landmark(){
 			        {
 			// found_landamark(b_e.x, b_e.y);
 			// TODO: send to shmem
+
+			if (varDispShMemActiveFlag) {
+				// create object
+				struct detected_obj obj;
+
+				obj.cm_x = cm_x;
+				obj.cm_y = cm_y;
+				memcpy(obj.obj_name, "landmark", 8);
+
+				// copy to shmem
+				memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+			}
+
+			if (varDispSemActiveFlag) {
+				// post semaphore
+				if ((sem_post(varDispSemAddr)) != 0) {
+				perror("Error posting semapore for image display"); /* save error in errno */
+				int status = EXIT_FAILURE;
+				pthread_exit(&status);
+				}
+			}
+
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);

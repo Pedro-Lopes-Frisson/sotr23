@@ -1,1 +1,1 @@
-void help(char *progname);
+static void help(char *progname);

@@ -2,6 +2,8 @@
 #include  "../include/point.h"
 #include  "../include/cab.h"
 #include  "../include/detectRedSquare.h"
+#include  "../include/object.h"
+
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <string.h>
@@ -34,6 +36,12 @@ extern SDL_Event event;
 extern SDL_Window *window;
 extern SDL_Renderer *renderer;
 extern SDL_Texture *screen_texture;
+
+extern char varDispShMemActiveFlag;
+extern char varDispSemActiveFlag;
+extern void *varDispShMemPtr;
+extern sem_t *varDispSemAddr;
+
 static int pixCountX[MAX_WIDTH];
 static int pixCountY[MAX_HEIGHT];
 static int i,x,y;					/* Indexes */
@@ -58,6 +66,28 @@ void detect_red_square(){
 	if(!imgFindRedSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
 		// found_object(b_s.x + b_e.x / 2 + b_s.x, b_s.y + b_e.y / 2 + b_s.y);
 		// TODO: send to shmem
+
+		if (varDispShMemActiveFlag) {
+			// create object
+			struct detected_obj obj;
+
+			obj.cm_x = cm_x;
+			obj.cm_y = cm_y;
+			memcpy(obj.obj_name, "square", 7);
+
+			// copy to shmem
+			memcpy(varDispShMemPtr, &obj, sizeof(struct detected_obj));
+		}
+
+		if (varDispSemActiveFlag) {
+			// post semaphore
+			if ((sem_post(varDispSemAddr)) != 0) {
+			perror("Error posting semapore for image display"); /* save error in errno */
+			int status = EXIT_FAILURE;
+			pthread_exit(&status);
+			}
+		}
+
 	} else {
 		printf("RedSquare not found\n");
 	}			

@@ -70,7 +70,7 @@ int fd = 0;                   /* File descriptor */
 
 extern int n;
 
-void help(char *progname) {
+static void help(char *progname) {
   printf("Usage: %s -v <shmem name> -d <sem name> -n <number of tasks>\n\r", progname);
   printf("Example: %s -v /varDispShMem -d /varDispSem -n 3\n\r", progname);
 }
@@ -101,6 +101,7 @@ int main(int argc, char *argv[]){
       help(argv[0]);
       return -1;
     }
+  }
 
   fd = shm_open(varDispShMemName,    /* Open file */
                 O_RDWR,             /* Open for read/write */

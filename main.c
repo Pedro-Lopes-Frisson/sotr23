@@ -34,7 +34,7 @@
 #include "include/objDetector.h"
 #include "include/landmarkDetector.h"
 #include "include/detectRedSquare.h"
-#include "include/varsDisplayer.h"
+#include "include/object.h"
 
 /* Global settings */
 #define FALSE 0 /* The usual true and false */
@@ -47,7 +47,7 @@
 
 /* Function prototypes */
 int main(int argc, char **argv);
-static void help_main(const char *procname);
+static void help(const char *procname);
 void callTasks(int frameCounter);
 
 /* Global variables */
@@ -102,7 +102,7 @@ sem_t landmarkCR, displayImageCR, detectObstaclesCR, redCR;
 /* **************************************************
  * help() function
  *****************************************************/
-void help_main(const char *procname) {
+void help(const char *procname) {
   printf("Usage: %s [OPTIONS]\n", procname);
   printf("\t -h : print this help dialog\n");
   printf("\t -x : specify width in pixels of the images being captured by some "
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
 
   // if no arguments are passed, print help and exit
   if (argc == 1) {
-    help_main(argv[0]);
+    help(argv[0]);
     return -1;
   }
 
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
       width = atoi(optarg);
       if (width < 0 || width > MAX_WIDTH) {
         printf("Invalid x value.\n");
-        help_main(argv[0]);
+        help(argv[0]);
         return -1;
       }
       break;
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
       height = atoi(optarg);
       if (height < 0 || height > MAX_HEIGHT) {
         printf("Invalid y value.\n");
-        help_main(argv[0]);
+        help(argv[0]);
         return -1;
       }
       break;
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
       n = atoi(optarg);
       if (n < 1) {
         printf("Invalid n value.\n");
-        help_main(argv[0]);
+        help(argv[0]);
         return -1;
       }
       break;
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'h':
     default:
-      help_main(argv[0]);
+      help(argv[0]);
       return -1;
     }
   }
@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
 
   /* -------------------SHARED MEMORY AND SEMAPHORES------------------- */
   // create shared memory
-  if (shMemActiveFlag == 0) {
+  if (shMemActiveFlag) {
     shMemSize = width * height * IMGBYTESPERPIXEL;
     unsigned char *pixels = malloc(shMemSize);
     printf("Filesystem entry:       '/dev/shm%s'\n", shMemName );
@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Create semaphore */
-  if (newDataSemActiveFlag == 0) {
+  if (newDataSemActiveFlag) {
     newDataSemAddr = sem_open(newDataSemName, /* semaphore name */
                               O_CREAT,        /* create the semaphore */
                               accessPerms,    /* protection perms */
@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* create shared memory for var display */
-  if (varDispShMemActiveFlag == 0) {
+  if (varDispShMemActiveFlag) {
     varDispFd = shm_open(varDispShMemName,    /* Open file */
                   O_RDWR,       /* Open for read/write */
                   accessPerms); /* set access permissions */
@@ -349,7 +349,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Create semaphore */
-  if (varDispSemActiveFlag == 0) {  
+  if (varDispSemActiveFlag) {  
     varDispSemAddr = sem_open(varDispSemName, /* semaphore name */
                               O_CREAT,        /* create the semaphore */
                               accessPerms,    /* protection perms */

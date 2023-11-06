@@ -9,10 +9,10 @@
  * object detection, etc.
  */
 
+/* General includes */
 #include <stdio.h>
 #include <sys/types.h>
-
-/* General includes */
+#include <string.h>
 #include <pthread.h>   /* for threads */
 #include <semaphore.h> /* for semaphores */
 
@@ -30,8 +30,8 @@
 extern int width, height;
 extern sem_t detectObstaclesCR;
 
-extern char varDispShMemActiveFlag = 0;
-extern char varDispSemActiveFlag = 0;
+extern char varDispShMemActiveFlag;
+extern char varDispSemActiveFlag;
 extern void *varDispShMemPtr;
 extern sem_t *varDispSemAddr;
 
