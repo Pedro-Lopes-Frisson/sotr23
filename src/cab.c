@@ -1,4 +1,4 @@
-#include "cab.h"
+#include "../include/cab.h"
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -32,13 +32,12 @@ static pthread_cond_t wait_for_written_buffers;
  * for processing */
 static pthread_cond_t workers_ready;
 
-void initialization(void) {
+static void initialization(void) {
   pthread_cond_init(&wait_for_written_buffers, NULL);
   pthread_cond_init(&workers_ready, NULL);
 }
 
-int open(const char *cab_name, const int max_buffers, const int dim_x,
-         const int dim_y) {
+int openCab(const char *cab_name, const int max_buffers, const int dim_x, const int dim_y) {
 
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
@@ -54,15 +53,23 @@ int open(const char *cab_name, const int max_buffers, const int dim_x,
   buffers =
       (struct CAB_BUFFER *)malloc(max_buffers * sizeof(struct CAB_BUFFER));
 
-  if (buffers != 0) {
+  if (buffers == NULL) {
     fprintf(stderr, "Structure could not be allocated!");
     return EXIT_FAILURE;
   }
+  printf("%p\n", &buffers);
 
   for (int i = 0; i < max_buffers; i++) {
     // allocate data buffer of each CAB_BUFFER
+    printf("dim_x %d, dim_y %d\n", dim_x, dim_y);
     buffers[i].img = (unsigned char *)malloc(dim_x * dim_y * IMGBYTESPERPIXEL *
                                              sizeof(unsigned char));
+    printf("%d\n", max_buffers);
+    if (buffers[i].img == NULL) {
+      fprintf(stderr, "Structure could not be allocated!");
+      return EXIT_FAILURE;
+    }
+    printf("buffer[%d]%p \t img %p\n",i, &(buffers[i]), buffers[i].img);
     // set use to 0
     buffers[i].use = 0;
     // set next buffer this is cyclic
@@ -78,9 +85,11 @@ int open(const char *cab_name, const int max_buffers, const int dim_x,
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
+  return EXIT_SUCCESS;
 }
 
-int close(void) {
+int closeCab(void) {
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
@@ -97,6 +106,8 @@ int close(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
+  return EXIT_SUCCESS;
 }
 
 void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
@@ -106,14 +117,8 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-
-  if (c->use == 0) {
-    memcpy(c->img, data, size); // copy data to CAB_BUFFER
-    mrb->next = free_b;
-    free_b = mrb;
-  }
-  mrb = c; // c is now te most recent buffer
-  // signal tasks that they can now read data
+  memcpy(c->img, data, size);
+  mrb = c;
   if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
     perror("Signal failed! wait_for_work"); /* save error in errno */
     int status = EXIT_FAILURE;
@@ -127,19 +132,21 @@ void putmes(struct CAB_BUFFER *c, unsigned char *data, const int size) {
 }
 
 struct CAB_BUFFER *getmes(void) {
-
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  printf("getMes\n");
   // wait for written buffers
-  if ((pthread_cond_signal(&wait_for_written_buffers)) != 0) {
+  if ((pthread_cond_wait(&wait_for_written_buffers,&accessCR)) != 0) {
     perror("Signal failed! wait_for_written_buffers"); /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  printf("Get Mes : %d\n", mrb->use);
   mrb->use++;
+  printf("Get Mes : %d\n", mrb->use);
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
@@ -157,10 +164,10 @@ void unget(struct CAB_BUFFER *buffer) {
 
   buffer->use--;
   if (buffer->use == 0 && buffer != mrb) {
-    buffer->next = free_b;
+    printf("Freeing buffer;\n\n");
     free_b = buffer;
   }
-
+  
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
@@ -169,18 +176,29 @@ void unget(struct CAB_BUFFER *buffer) {
 }
 
 struct CAB_BUFFER *reserve(void) {
+  printf("Reserving buffer\n\r");
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  struct CAB_BUFFER * p;
-  p = free_b;
-  free_b = p->next;
-  return p;
+  int i = 0;
+  //int found = 1;
+  for( i = 0 ; i < max_buff ; i++ ){
+    if(buffers[i].use <= 0){
+      buffers[i].use+=1;
+      break;
+    }
+  }
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+  if(i == max_buff){
+    printf("Failed to reserve buffer\n");
+    return NULL;
+  }
+  printf("\n\nReserved buffer I: %d\n", i);
+  return &buffers[i];
 }
