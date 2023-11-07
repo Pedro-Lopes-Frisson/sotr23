@@ -24,6 +24,7 @@ setsid --fork gnome-terminal -- sudo $PWD/varsDisplayer -d $SEM_VARS -v $MEM_VAR
 # launch webCamCapture
 setsid --fork gnome-terminal -- sudo $PWD/webCamCapture -s $SEM_WEBCAM -m $MEM_WEBCAM -v $WEB_CAM -d
 
+echo "Dont Forget to press enter to launch main after running the first two terminals\n"
 read
 
 # launch Main program

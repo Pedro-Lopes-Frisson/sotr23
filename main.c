@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0 && FALSE) {
+  if (frameCounter % 1 == 0) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;

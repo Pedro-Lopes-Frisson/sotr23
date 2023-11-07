@@ -43,10 +43,6 @@ extern void *varDispShMemPtr;
 extern sem_t *varDispSemAddr;
 
 static SDL_Event event;
-static SDL_Window *window;
-static SDL_Renderer *renderer;
-static SDL_Renderer *renderer_lines;
-static SDL_Texture *screen_texture;
 
 static int pixCountX[MAX_WIDTH];
 static int pixCountY[MAX_HEIGHT];
@@ -62,35 +58,8 @@ void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
 	struct CAB_BUFFER *c = NULL;
 
-		SDL_Init(SDL_INIT_VIDEO);
-
-		window = SDL_CreateWindow("WebCamCapture1",
-			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			width, height,
-			SDL_WINDOW_RESIZABLE);
-
-		renderer = SDL_CreateRenderer(window,
-			-1, SDL_RENDERER_PRESENTVSYNC);
-
 		width = width;
 		height = height;
-
-		/* Limit the window size so that it cannot */
-		/* be smaller than teh webcam image size */
-		SDL_SetWindowMinimumSize(window, width, height);
-
-		SDL_RenderSetLogicalSize(renderer, width, height);
-		SDL_RenderSetIntegerScale(renderer, 1);
-
-		screen_texture = SDL_CreateTexture(renderer,
-			SDL_PIXELFORMAT_BGRA32, SDL_TEXTUREACCESS_STREAMING,
-			width, height);
-
-		renderer_lines = SDL_CreateRenderer(window,
-			-1, SDL_RENDERER_PRESENTVSYNC);
-
-		SDL_RenderSetLogicalSize(renderer_lines, width, height);
-		SDL_RenderSetIntegerScale(renderer_lines, 1);
 
     while(1){
 	    printf("\n\n");
@@ -113,7 +82,7 @@ void detect_landmark(){
 		}			
 
 		//find first green square
-		if(!imgFindGreenSquare(pixels,b_e.x, b_s.y, width, height, &g_s, &g_e )) {
+		if(!imgFindGreenSquare(pixels,b_s.x, 0, width, height, &g_s, &g_e )) {
 			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
 		} else {
 			printf("Green not found\n");
@@ -403,8 +372,6 @@ int imgFindBlueSquare(unsigned char * shMemPtr, int startX, int startY, int widt
 
 	
 	if(cm_x >= 0 && cm_y >= 0){
-		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
-		SDL_RenderDrawLine(renderer, b_s->x, b_s->y, b_e->x, b_e->y);
 
 		return 0;	// Success
 	}
@@ -612,8 +579,6 @@ int imgFindGreenSquare(unsigned char * shMemPtr, int startX, int startY, int wid
 	
 	if(cm_x >= 0 && cm_y >= 0){
 
-		SDL_SetRenderDrawColor(renderer_lines, 242, 242, 242, 255);
-		SDL_RenderDrawLine(renderer, g_s->x, g_s->y, g_e->x, g_e->y);
 		return 0;	// Success
 	}
 	else
