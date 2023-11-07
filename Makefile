@@ -45,5 +45,6 @@ varsDisplayer: src/varsDisplayer.c include/varsDisplayer.h
 
 clean:
 	rm -f *.o 
-	rm webCamCapture
-	rm main
+	rm -f webCamCapture
+	rm -f main
+	rm -f varsDisplayer
