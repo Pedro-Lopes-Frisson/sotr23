@@ -45,7 +45,6 @@ void main(int argc, char ** argv){
 
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
-  pthread_create(&tIdWork[0], NULL, (void *)write_to_cab, NULL);
   
   // initialize semaphore
   if (sem_init(&everyFrame, 0, 1) == -1) {
@@ -67,12 +66,18 @@ void main(int argc, char ** argv){
   }
   pthread_create(&tIdWork[3], NULL, (void *)read_from_cab_4, NULL);
 
+  for (int j = 0; j < 1e9; j++)
+
+  pthread_create(&tIdWork[0], NULL, (void *)write_to_cab, NULL);
+
   int s;
    for (int tnum = 0; tnum < 4; tnum++) {
        s = pthread_join(tIdWork[tnum], NULL);
        printf("Joined with thread %d; returned value was \n",
 	       tnum);
    }
+
+
 
   // finalize 
   closeCab();
@@ -90,14 +95,13 @@ void write_to_cab(){
 	uint64_t min_iat, max_iat; // Hold the minimum/maximum observed inter arrival time
 	int frameCounter = 0; 	// Activation counter
 	int update; 	// Flag to signal that min/max should be updated
-  	int periods = 20;
+  	int periods = 201;
 	unsigned char *data = malloc(sizeof(unsigned char) * 10);
-	printf("Ollaa\n");
 
 	/* Set absolute activation time of first instance */
   //
 	tp.tv_nsec = 33333333; // 0 ns
-	tp.tv_sec = 0;  // 5 s
+	tp.tv_sec = 2;  // 5 s
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	ts = TsAdd(ts,tp);
 
@@ -107,15 +111,17 @@ void write_to_cab(){
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME,&ts,NULL);
 		clock_gettime(CLOCK_MONOTONIC, &ta);
 		ts = TsAdd(ts,tp);
+		printf("Periods %d\tFrame counter %d\n", periods, frameCounter);
 
 		// reserve a buffer for writing
 		struct CAB_BUFFER *cab = (struct CAB_BUFFER *)reserve();
 		if (cab == NULL) {
+		printf("Reservation Failed;\n");
 		  continue;
 		}
-		memset(data, 'A' + frameCounter, 10);
+		memset(data, frameCounter, 1);
 		// save image to buffer
-		putmes(cab, data , 10);
+		putmes(cab, data , 1);
 		unget(cab);
 		printf("Wrote message %d\n", frameCounter );
 
@@ -126,15 +132,6 @@ void write_to_cab(){
 		frameCounter++;
     		periods--;
 	}
-	struct CAB_BUFFER *cab = (struct CAB_BUFFER *)reserve();
-	data[0] = 'e';
-	data[1] = 'n';
-	data[2] = 'd';
-	data[3] = '\0';
-	// save image to buffer
-	putmes(cab, data , 10);
-	unget(cab);
-	callTasks(frameCounter);
 
     	return ;
 }
@@ -169,28 +166,24 @@ void read_from_cab(void) {
 	int i=0;
 	int ct = 0;
 	while(1){
-	    if (c != NULL)
-	    	unget(c);
-
 		if ((sem_wait(&everyFrame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
 		    int status = EXIT_FAILURE;
 		    pthread_exit(&status);
 		}
 		c = getmes();
-		int r = strncmp("end", c->img, 4 );
+		int r = c->img[0] - 200;
 		if (r == 0) {
+	    		unget(c);
 			int status = 0;
-			printf("aaaaaaaaaaaaaaaaaaaaaaa%daaaaaaaaaaaaaaaaaaa\n\n\n\n\n", r);
 			pthread_exit(&status);
 		}
-		printf("message:\n");
-		for (i = 0; i < 10; i++){
-			printf("%d", c->img[i]);
-		}
+		printf("message");
+		printf("%d %d", 1 , c->img[i]);
 		printf("\n");
 		ct++;
 		printf("Read message %d\n", ct);
+		unget(c);
 	}
 }
 void read_from_cab_2(void){
@@ -199,8 +192,6 @@ void read_from_cab_2(void){
 	int i=0;
 	int ct = 0;
 	while(1){
-	    if (c != NULL)
-	    	unget(c);
 
 		if ((sem_wait(&every2Frame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
@@ -208,19 +199,18 @@ void read_from_cab_2(void){
 		    pthread_exit(&status);
 		}
 		c = getmes();
-		int r = strncmp("end", c->img, 4 );
+		int r = c->img[0] - 200;
 		if (r == 0) {
+	    		unget(c);
 			int status = 0;
 			pthread_exit(&status);
 		}
-		for (int j = 0 ; j < 1e5; j++){}
-		printf("message:\n");
-		for (i = 0; i < 10; i++){
-			printf("%d", c->img[i]);
-		}
+		printf("message");
+		printf("%d: %d", 2 ,c->img[i]);
 		printf("\n");
 		ct++;
 		printf("Read message %d\n", ct);
+	    	unget(c);
 	}
 }
 void read_from_cab_4(void){
@@ -229,8 +219,6 @@ void read_from_cab_4(void){
 	int i=0;
 	int ct = 0;
 	while(1){
-	    if (c != NULL)
-	    	unget(c);
 
 		if ((sem_wait(&every4Frame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
@@ -238,19 +226,18 @@ void read_from_cab_4(void){
 		    pthread_exit(&status);
 		}
 		c = getmes();
-		int r = strncmp("end", c->img, 4 );
+		int r = c->img[0] - 200;
 		if ( r == 0) {
+	    		unget(c);
 			int status = 0;
 			pthread_exit(&status);
 		}
-		for (int j = 0 ; j < 1e9; j++){}
-		printf("message:\n");
-		for (i = 0; i < 10; i++){
-			printf("%d", c->img[i]);
-		}
+		printf("message");
+		printf("%d: %d", 4 ,c->img[i]);
 		printf("\n");
 		ct++;
 		printf("Read message %d\n", ct);
+	    	unget(c);
 	}
 }
 

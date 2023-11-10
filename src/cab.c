@@ -165,7 +165,6 @@ void unget(struct CAB_BUFFER *buffer) {
   buffer->use--;
   if (buffer->use == 0 && buffer != mrb) {
     printf("Freeing buffer;\n\n");
-    free_b = buffer;
   }
   
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
@@ -183,10 +182,11 @@ struct CAB_BUFFER *reserve(void) {
     pthread_exit(&status);
   }
   int i = 0;
-  //int found = 1;
+  int found = -1;
   for( i = 0 ; i < max_buff ; i++ ){
     if(buffers[i].use <= 0){
-      buffers[i].use+=1;
+      buffers[i].use=1;
+      found = 0;
       break;
     }
   }
@@ -195,10 +195,13 @@ struct CAB_BUFFER *reserve(void) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
-  if(i == max_buff){
+  if(i == max_buff || found == -1){
     printf("Failed to reserve buffer\n");
     return NULL;
   }
+
   printf("\n\nReserved buffer I: %d\n", i);
-  return &buffers[i];
+  if( found == 0 )
+	  return &buffers[i];
+  return NULL;
 }
