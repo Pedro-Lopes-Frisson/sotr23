@@ -58,8 +58,14 @@ void detect_landmark(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
 	struct CAB_BUFFER *c = NULL;
 
-		width = width;
-		height = height;
+	width = width;
+	height = height;
+	
+	// create object
+	struct detected_obj obj;
+
+	clock_t start, end;
+  	FILE *fp;
 
     while(1){
 	    printf("\n\n");
@@ -78,53 +84,16 @@ void detect_landmark(){
 			printf("BlueSquare found at (%3d,%3d)\n", b_s.x, b_s.y);
 		} else {
 			printf("\n\n\n\nBlueSquare not found\n");
-			continue;
-		}			
 
-		//find first green square
-		if(!imgFindGreenSquare(pixels,b_s.x, 0, width, height, &g_s, &g_e )) {
-			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
-		} else {
-			printf("Green not found\n");
-			continue;
-		}		
-
-		//find second green square under first blue square
-		if(!imgFindGreenSquare(pixels,b_s.x, b_e.y, width, height, &g1_s, &g1_e )) {
-			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
-		} else {
-			printf("Green not found\n");
-			continue;
-		}		
-
-		// find second blue square after second green square X and after first blue square y
-		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
-			printf("1BlueSquare found at (%3d,%3d)\n", b1_s.x, b1_s.y);
-		} else {
-			printf("BlueSquare not found\n");
-			continue;
-		}			
-
-		if((abs(g_s.x - b_e.x)   < 80)+
-                                              (abs(g1_s.y - b_e.y)  < 80)+
-					      (abs(g1_s.x - b_s.x)  < 80)+
-					      (abs(b1_s.y - g_s.y)  < 80) > 2) // second blue square is under the first green square
-			        {
-			// found_landamark(b_e.x, b_e.y);
-			// TODO: send to shmem
+			obj.cm_x = 0;
+			obj.cm_y = 0;
+			memcpy(obj.obj_name, "Landmark not Found", 18);
 
 			if (varDispShMemActiveFlag) {
-				// create object
-				struct detected_obj obj;
-
-				obj.cm_x = cm_x;
-				obj.cm_y = cm_y;
-				memcpy(obj.obj_name, "landmark", 8);
-
 				// copy to shmem
 				memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
 			}
-
+			
 			if (varDispSemActiveFlag) {
 				// post semaphore
 				if ((sem_post(varDispSemAddr)) != 0) {
@@ -134,6 +103,102 @@ void detect_landmark(){
 				}
 			}
 
+			continue;
+		}			
+
+		//find first green square
+		if(!imgFindGreenSquare(pixels,b_s.x, 0, width, height, &g_s, &g_e )) {
+			printf("GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
+		} else {
+			printf("Green not found\n");
+
+			obj.cm_x = 0;
+			obj.cm_y = 0;
+			memcpy(obj.obj_name, "Landmark not Found", 18);
+
+			if (varDispShMemActiveFlag) {
+				// copy to shmem
+				memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
+			}
+			
+			if (varDispSemActiveFlag) {
+				// post semaphore
+				if ((sem_post(varDispSemAddr)) != 0) {
+				perror("Error posting semapore for image display"); /* save error in errno */
+				int status = EXIT_FAILURE;
+				pthread_exit(&status);
+				}
+			}
+
+			continue;
+		}		
+
+		//find second green square under first blue square
+		if(!imgFindGreenSquare(pixels,b_s.x, b_e.y, width, height, &g1_s, &g1_e )) {
+			printf("1GreenSquare found at (%3d,%3d)\n", g_s.x, g_s.y);
+		} else {
+			printf("Green not found\n");
+
+			obj.cm_x = 0;
+			obj.cm_y = 0;
+			memcpy(obj.obj_name, "Landmark not Found", 18);
+
+			if (varDispShMemActiveFlag) {
+				// copy to shmem
+				memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
+			}
+			
+			if (varDispSemActiveFlag) {
+				// post semaphore
+				if ((sem_post(varDispSemAddr)) != 0) {
+				perror("Error posting semapore for image display"); /* save error in errno */
+				int status = EXIT_FAILURE;
+				pthread_exit(&status);
+				}
+			}
+
+			continue;
+		}		
+
+		// find second blue square after second green square X and after first blue square y
+		if(!imgFindBlueSquare(pixels, g1_e.x, b_e.y, width, height, &b1_s, &b1_e )) {
+			printf("1BlueSquare found at (%3d,%3d)\n", b1_s.x, b1_s.y);
+		} else {
+			printf("BlueSquare not found\n");
+
+			obj.cm_x = 0;
+			obj.cm_y = 0;
+			memcpy(obj.obj_name, "Landmark not Found", 18);
+
+			if (varDispShMemActiveFlag) {
+				// copy to shmem
+				memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
+			}
+			
+			if (varDispSemActiveFlag) {
+				// post semaphore
+				if ((sem_post(varDispSemAddr)) != 0) {
+				perror("Error posting semapore for image display"); /* save error in errno */
+				int status = EXIT_FAILURE;
+				pthread_exit(&status);
+				}
+			}
+
+			continue;
+		}
+
+		if((abs(g_s.x - b_e.x)   < 80)+
+                                              (abs(g1_s.y - b_e.y)  < 80)+
+					      (abs(g1_s.x - b_s.x)  < 80)+
+					      (abs(b1_s.y - g_s.y)  < 80) > 2) // second blue square is under the first green square
+			        {
+			// found_landamark(b_e.x, b_e.y);
+			// TODO: send to shmem
+
+			obj.cm_x = cm_x;
+			obj.cm_y = cm_y;
+			memcpy(obj.obj_name, "landmark", 8);
+			
 		}else{
 			printf("%d,%d,%d,%d\n", b_s.x, b_s.y, b_e.x, b_e.y);
 			printf("%d,%d,%d,%d\n", g_s.x, g_s.y, g_e.x, g_e.y);
@@ -143,6 +208,24 @@ void detect_landmark(){
                                               (abs(g1_s.y - b_e.y)  < 80),
 					      (abs(g1_s.x - b_s.x)  < 80),
 					      (abs(b1_s.y - g_s.y)  < 80));
+
+			obj.cm_x = 0;
+			obj.cm_y = 0;
+			memcpy(obj.obj_name, "Landmark not Found", 18);
+		}
+
+		if (varDispShMemActiveFlag) {
+			// copy to shmem
+			memcpy(&((struct detected_obj *)varDispShMemPtr)[2], &obj, sizeof(struct detected_obj));
+		}
+
+		if (varDispSemActiveFlag) {
+			// post semaphore
+			if ((sem_post(varDispSemAddr)) != 0) {
+			perror("Error posting semapore for image display"); /* save error in errno */
+			int status = EXIT_FAILURE;
+			pthread_exit(&status);
+			}
 		}
 
 		b_s.x = -1; b_s.y = -1;
@@ -155,10 +238,7 @@ void detect_landmark(){
 		b1_e.x = -1; b1_e.y = -1; 
 
                 g1_s.x = -1; g1_s.y = -1;
-		g1_e.x = -1; g1_e.y = -1; 
-
-
-
+		g1_e.x = -1; g1_e.y = -1;
     }
 }
 

@@ -48,6 +48,7 @@
 /* Function prototypes */
 int main(int argc, char **argv);
 static void help(const char *procname);
+static int initializeMain();
 void callTasks(int frameCounter);
 
 /* Global variables */
@@ -98,7 +99,6 @@ SDL_Texture *screen_texture;
 int width, height, n = -1; /* n is the number of tasks */
 sem_t landmarkCR, displayImageCR, detectObstaclesCR, redCR;
 
-
 /* **************************************************
  * help() function
  *****************************************************/
@@ -120,71 +120,9 @@ void help(const char *procname) {
 }
 
 /* **************************************************
- * main() function
+ * initializeMain() function
  *****************************************************/
-int main(int argc, char *argv[]) {
-  int opt;
-
-  // if no arguments are passed, print help and exit
-  if (argc == 1) {
-    help(argv[0]);
-    return -1;
-  }
-
-  while ((opt = getopt(argc, argv, "hx:y:n:m:s:v:d:")) != -1) {
-    switch (opt) {
-    case 'x':
-      width = atoi(optarg);
-      if (width < 0 || width > MAX_WIDTH) {
-        printf("Invalid x value.\n");
-        help(argv[0]);
-        return -1;
-      }
-      break;
-    case 'y':
-      height = atoi(optarg);
-      if (height < 0 || height > MAX_HEIGHT) {
-        printf("Invalid y value.\n");
-        help(argv[0]);
-        return -1;
-      }
-      break;
-    case 'n':
-      n = atoi(optarg);
-      if (n < 1) {
-        printf("Invalid n value.\n");
-        help(argv[0]);
-        return -1;
-      }
-      break;
-    case 'm':
-      printf("optarg -m: %s\n", optarg);
-      strcpy(shMemName, optarg);
-      shMemActiveFlag = 1;
-      break;
-    case 's':
-      printf("optarg -s: %s\n", optarg);
-      strcpy(newDataSemName, optarg);
-      newDataSemActiveFlag = 1;
-      break;
-    case 'v':
-      printf("optarg -v: %s\n", optarg);
-      strcpy(varDispShMemName, optarg);
-      varDispShMemActiveFlag = 1;
-      break;
-    case 'd':
-      printf("optarg -d: %s\n", optarg);
-      strcpy(varDispSemName, optarg);
-      varDispSemActiveFlag = 1;
-      break;
-    case 'h':
-    default:
-      help(argv[0]);
-      return -1;
-    }
-  }
-  printf("width: %d, height: %d, n: %d\n", width, height, n);
-
+int initializeMain(){
   // create CAB structure
   openCab(appName, n + 1, width, height);
   printf("CAB created with %d buffers\n\r", n + 1);
@@ -230,7 +168,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmLandmark;
   pthread_attr_getschedparam (&attr, &parmLandmark);
-  parmLandmark.sched_priority = 92;
+  parmLandmark.sched_priority = 94;
   pthread_attr_setschedparam(&attr, &parmLandmark);
 
   pthread_create(&tIdWork[1], &attr, (void *)detect_landmark, NULL);
@@ -260,7 +198,7 @@ int main(int argc, char *argv[]) {
 
   struct sched_param parmRed;
   pthread_attr_getschedparam (&attr, &parmRed);
-  parmRed.sched_priority = 94;
+  parmRed.sched_priority = 92;
   pthread_attr_setschedparam(&attr, &parmRed);
 
   pthread_create(&tIdWork[3], &attr, (void *)detect_red_square, NULL);
@@ -363,6 +301,81 @@ int main(int argc, char *argv[]) {
   }
   /* -------------------SHARED MEMORY AND SEMAPHORES------------------- */
 
+  return 0;
+}
+
+/* **************************************************
+ * main() function
+ *****************************************************/
+int main(int argc, char *argv[]) {
+  int opt;
+
+  // if no arguments are passed, print help and exit
+  if (argc == 1) {
+    help(argv[0]);
+    return -1;
+  }
+
+  while ((opt = getopt(argc, argv, "hx:y:n:m:s:v:d:")) != -1) {
+    switch (opt) {
+    case 'x':
+      width = atoi(optarg);
+      if (width < 0 || width > MAX_WIDTH) {
+        printf("Invalid x value.\n");
+        help(argv[0]);
+        return -1;
+      }
+      break;
+    case 'y':
+      height = atoi(optarg);
+      if (height < 0 || height > MAX_HEIGHT) {
+        printf("Invalid y value.\n");
+        help(argv[0]);
+        return -1;
+      }
+      break;
+    case 'n':
+      n = atoi(optarg);
+      if (n < 1) {
+        printf("Invalid n value.\n");
+        help(argv[0]);
+        return -1;
+      }
+      break;
+    case 'm':
+      printf("optarg -m: %s\n", optarg);
+      strcpy(shMemName, optarg);
+      shMemActiveFlag = 1;
+      break;
+    case 's':
+      printf("optarg -s: %s\n", optarg);
+      strcpy(newDataSemName, optarg);
+      newDataSemActiveFlag = 1;
+      break;
+    case 'v':
+      printf("optarg -v: %s\n", optarg);
+      strcpy(varDispShMemName, optarg);
+      varDispShMemActiveFlag = 1;
+      break;
+    case 'd':
+      printf("optarg -d: %s\n", optarg);
+      strcpy(varDispSemName, optarg);
+      varDispSemActiveFlag = 1;
+      break;
+    case 'h':
+    default:
+      help(argv[0]);
+      return -1;
+    }
+  }
+  printf("width: %d, height: %d, n: %d\n", width, height, n);
+
+  int init = initializeMain();
+  if (init == -1) {
+    printf("Error initializing main\n\r");
+    return -1;
+  }
+
   // start copying images from the shared memory to the cab
   int frameCounter = 0;
   while (1) {
@@ -373,7 +386,6 @@ int main(int argc, char *argv[]) {
 
     // wait for new image
     if (!sem_wait(newDataSemAddr)) { /* sem_wait returns 0 on success */
-
       // reserve a buffer for writing
       struct CAB_BUFFER *cab = (struct CAB_BUFFER *)reserve();
       if (cab == NULL) {
@@ -404,7 +416,7 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0) {
+  if (frameCounter % 4 == 0) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;
@@ -417,6 +429,7 @@ void callTasks(int frameCounter) {
         pthread_exit(&status);
     }
   }
+
   if (frameCounter % 15 == 0) {
     if ((sem_post(&landmarkCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
@@ -425,12 +438,13 @@ void callTasks(int frameCounter) {
     }
 	//printf("Released landmark thread\n");
   }
-  if (frameCounter % 8 == 0&& FALSE) {
+
+  if (frameCounter % 8 == 0) {
     if ((sem_post(&redCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for Landmark detection");  /* save error in errno */
         int status = EXIT_FAILURE;
         pthread_exit(&status);
     }
-	//printf("Released landmark thread\n");
+	  printf("Released landmark thread\n");
   }
 }

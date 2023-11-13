@@ -41,46 +41,45 @@ sem_t every4Frame;
 
 void main(int argc, char ** argv){
 
-  int n = 4, width = 10, height = 1;
+	int n = 4, width = 10, height = 1;
 
-  openCab(appName, n + 1, width, height);
-  printf("CAB created with %d buffers\n\r", n + 1);
-  
-  // initialize semaphore
-  if (sem_init(&everyFrame, 0, 1) == -1) {
-      perror("Semaphore initialization failed");
-      exit(EXIT_FAILURE);
-  }
-  pthread_create(&tIdWork[1], NULL, (void *)read_from_cab, NULL);
+	openCab(appName, n + 1, width, height);
+	printf("CAB created with %d buffers\n\r", n + 1);
+	
+	// initialize semaphore
+	if (sem_init(&everyFrame, 0, 1) == -1) {
+		perror("Semaphore initialization failed");
+		exit(EXIT_FAILURE);
+	}
+	pthread_create(&tIdWork[1], NULL, (void *)read_from_cab, NULL);
 
-  // initialize semaphore
-  if (sem_init(&every2Frame, 0, 1) == -1) {
-      perror("Semaphore initialization failed");
-      exit(EXIT_FAILURE);
-  }
-  pthread_create(&tIdWork[2], NULL, (void *)read_from_cab_2, NULL);
-  // initialize semaphore
-  if (sem_init(&every4Frame, 0, 1) == -1) {
-      perror("Semaphore initialization failed");
-      exit(EXIT_FAILURE);
-  }
-  pthread_create(&tIdWork[3], NULL, (void *)read_from_cab_4, NULL);
+	// initialize semaphore
+	if (sem_init(&every2Frame, 0, 1) == -1) {
+		perror("Semaphore initialization failed");
+		exit(EXIT_FAILURE);
+	}
+	pthread_create(&tIdWork[2], NULL, (void *)read_from_cab_2, NULL);
 
-  for (int j = 0; j < 1e9; j++)
+	// initialize semaphore
+	if (sem_init(&every4Frame, 0, 1) == -1) {
+		perror("Semaphore initialization failed");
+		exit(EXIT_FAILURE);
+	}
+	pthread_create(&tIdWork[3], NULL, (void *)read_from_cab_4, NULL);
 
-  pthread_create(&tIdWork[0], NULL, (void *)write_to_cab, NULL);
+	// delay
+	for (int j = 0; j < 1e9; j++)
 
-  int s;
-   for (int tnum = 0; tnum < 4; tnum++) {
-       s = pthread_join(tIdWork[tnum], NULL);
-       printf("Joined with thread %d; returned value was \n",
-	       tnum);
-   }
+  	pthread_create(&tIdWork[0], NULL, (void *)write_to_cab, NULL);
 
+  	int s;
+	for (int tnum = 0; tnum < 4; tnum++) {
+		s = pthread_join(tIdWork[tnum], NULL);
+		printf("Joined with thread %d; returned value was \n", tnum);
+	}
 
-
-  // finalize 
-  closeCab();
+	// finalize 
+	closeCab();
 }
 
 void write_to_cab(){
@@ -116,68 +115,73 @@ void write_to_cab(){
 		// reserve a buffer for writing
 		struct CAB_BUFFER *cab = (struct CAB_BUFFER *)reserve();
 		if (cab == NULL) {
-		printf("Reservation Failed;\n");
-		  continue;
+			printf("Reservation Failed;\n");
+			continue;
 		}
 		memset(data, frameCounter, 1);
+
 		// save image to buffer
-		putmes(cab, data , 1);
+		putmes(cab, data, 1);
+
 		unget(cab);
 		printf("Wrote message %d\n", frameCounter );
 
-
 		// check which tasks should be executed
 		callTasks(frameCounter);
+
 		// increment frame counter
 		frameCounter++;
-    		periods--;
+		periods--;
 	}
 
-    	return ;
+	return;
 }
 
 
 void callTasks(int frameCounter) {
-  if (frameCounter % 1 == 0) {
-    if ((sem_post(&everyFrame)) != 0) { /* enter monitor */
-        perror("Error posting semapore for obstacle detection");  /* save error in errno */
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-    }
-  }
-  if (frameCounter % 2 == 0) {
-    if ((sem_post(&every2Frame)) != 0) { /* enter monitor */
-        perror("Error posting semapore for obstacle detection");  /* save error in errno */
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-    }
-  }
-  if (frameCounter % 4 == 0) {
-    if ((sem_post(&every4Frame)) != 0) { /* enter monitor */
-        perror("Error posting semapore for obstacle detection");  /* save error in errno */
-        int status = EXIT_FAILURE;
-        pthread_exit(&status);
-    }
-  }
+	if (frameCounter % 1 == 0) {
+		if ((sem_post(&everyFrame)) != 0) { /* enter monitor */
+			perror("Error posting semapore for obstacle detection");  /* save error in errno */
+			int status = EXIT_FAILURE;
+			pthread_exit(&status);
+		}
+	}
+	if (frameCounter % 2 == 0) {
+		if ((sem_post(&every2Frame)) != 0) { /* enter monitor */
+			perror("Error posting semapore for obstacle detection");  /* save error in errno */
+			int status = EXIT_FAILURE;
+			pthread_exit(&status);
+		}
+	}
+	if (frameCounter % 4 == 0) {
+		if ((sem_post(&every4Frame)) != 0) { /* enter monitor */
+			perror("Error posting semapore for obstacle detection");  /* save error in errno */
+			int status = EXIT_FAILURE;
+			pthread_exit(&status);
+		}
+	}
 }
 
 void read_from_cab(void) {
 	struct CAB_BUFFER *c = NULL;
 	int i=0;
 	int ct = 0;
+
 	while(1){
 		if ((sem_wait(&everyFrame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
 		    int status = EXIT_FAILURE;
 		    pthread_exit(&status);
 		}
+
 		c = getmes();
 		int r = c->img[0] - 200;
 		if (r == 0) {
-	    		unget(c);
+			unget(c);
 			int status = 0;
 			pthread_exit(&status);
 		}
+
 		printf("message");
 		printf("%d %d", 1 , c->img[i]);
 		printf("\n");
@@ -187,44 +191,44 @@ void read_from_cab(void) {
 	}
 }
 void read_from_cab_2(void){
-
 	struct CAB_BUFFER *c = NULL;
 	int i=0;
 	int ct = 0;
-	while(1){
 
+	while(1){
 		if ((sem_wait(&every2Frame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
 		    int status = EXIT_FAILURE;
 		    pthread_exit(&status);
 		}
+
 		c = getmes();
 		int r = c->img[0] - 200;
 		if (r == 0) {
-	    		unget(c);
+			unget(c);
 			int status = 0;
 			pthread_exit(&status);
 		}
+
 		printf("message");
 		printf("%d: %d", 2 ,c->img[i]);
 		printf("\n");
 		ct++;
 		printf("Read message %d\n", ct);
-	    	unget(c);
+		unget(c);
 	}
 }
 void read_from_cab_4(void){
-
 	struct CAB_BUFFER *c = NULL;
 	int i=0;
 	int ct = 0;
 	while(1){
-
 		if ((sem_wait(&every4Frame)) != 0) { /* enter monitor */
 		    perror("Error posting semapore for Landmark detection");  /* save error in errno */
 		    int status = EXIT_FAILURE;
 		    pthread_exit(&status);
 		}
+
 		c = getmes();
 		int r = c->img[0] - 200;
 		if ( r == 0) {
@@ -232,6 +236,7 @@ void read_from_cab_4(void){
 			int status = 0;
 			pthread_exit(&status);
 		}
+
 		printf("message");
 		printf("%d: %d", 4 ,c->img[i]);
 		printf("\n");

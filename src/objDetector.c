@@ -36,6 +36,7 @@ extern void *varDispShMemPtr;
 extern sem_t *varDispSemAddr;
 
 void detect_obstacles_spiral() {
+
 /* Let's consider that the ground is white and the obstacles are of a different
  * color */
 
@@ -252,6 +253,7 @@ void detect_obstacles_spiral() {
     /* Free the cab */
     unget(c);
   }
+
 }
 
 int calculateSpirals(int n) {
@@ -265,7 +267,7 @@ int calculateSpirals(int n) {
 }
 
 int isWhite(unsigned char *pixel) {
-  if (pixel[0] == 255 && pixel[1] == 255 && pixel[2] == 255) {
+  if (pixel[0] >= 200 && pixel[1] >= 200 && pixel[2] >= 200) {
     return TRUE;
   }
   return FALSE;
