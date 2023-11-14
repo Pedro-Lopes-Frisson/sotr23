@@ -154,12 +154,14 @@ int main(int argc, char *argv[]) {
              ((struct detected_obj *)varDispShMemPtr)[0].obj_name,
              ((struct detected_obj *)varDispShMemPtr)[0].cm_x,
              ((struct detected_obj *)varDispShMemPtr)[0].cm_y);
-      printf("---------------------------\n\r");
+      // printf("---------------------------\n\r");
+      printf("\n\r");
       printf("%s at (%d,%d)\n",
              ((struct detected_obj *)varDispShMemPtr)[1].obj_name,
              ((struct detected_obj *)varDispShMemPtr)[1].cm_x,
              ((struct detected_obj *)varDispShMemPtr)[1].cm_y);
-      printf("---------------------------\n\r");
+      // printf("---------------------------\n\r");
+      printf("\n\r");
       printf("%s at (%d,%d)\n",
              ((struct detected_obj *)varDispShMemPtr)[2].obj_name,
              ((struct detected_obj *)varDispShMemPtr)[2].cm_x,

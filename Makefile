@@ -13,7 +13,7 @@ LIBS += -lavformat -lavcodec -lavutil -lavdevice -lswscale
 OBJFILES = cab.o imageViewer.o objDetector.o landmarkDetector.o detectRedSquare.o
 HDRFILES = include/cab.h include/imageViewer.h include/objDetector.h include/landmarkDetector.h include/detectRedSquare.h include/varsDisplayer.h
 
-all: webCamCapture cab imageViewer objDetector landmarkDetector detectRedSquare varsDisplayer main
+all: webCamCapture cab imageViewer objDetector landmarkDetector detectRedSquare varsDisplayer main test_cab
 .PHONY: all
 
 # Generate application
@@ -40,6 +40,9 @@ detectRedSquare: src/detectRedSquare.c include/detectRedSquare.h include/point.h
 
 varsDisplayer: src/varsDisplayer.c include/varsDisplayer.h
 	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ $(LIBS)
+
+test_cab: test_cab.c cab.o
+	$(CC) $(CFLAGS) $(LDIRS) $< -o $@ cab.o $(LIBS)
 
 .PHONY: clean 
 

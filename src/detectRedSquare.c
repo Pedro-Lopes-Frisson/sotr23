@@ -1,4 +1,3 @@
-
 #include  "../include/point.h"
 #include  "../include/cab.h"
 #include  "../include/detectRedSquare.h"
@@ -52,45 +51,47 @@ static struct Point b_s, b_e; // blue square edges
 void detect_red_square(){
     unsigned char pixels[width * height * IMGBYTESPERPIXEL];
 
+	while(1){
 
-    while(1){
         if ((sem_wait(&redCR)) != 0) { /* enter monitor */
             perror("Error posting semapore for Landmark detection");  /* save error in errno */
             int status = EXIT_FAILURE;
             pthread_exit(&status);
         }
+
         struct CAB_BUFFER *c = getmes();
         memcpy(pixels, c->img, width * height * IMGBYTESPERPIXEL);
         unget(c);
-	// first find blue square
-	if(!imgFindRedSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
-		// found_object(b_s.x + b_e.x / 2 + b_s.x, b_s.y + b_e.y / 2 + b_s.y);
-		// TODO: send to shmem
 
-		if (varDispShMemActiveFlag) {
-			// create object
-			struct detected_obj obj;
+		// first find blue square
+		if(!imgFindRedSquare(pixels, 0, 0, width, height, &b_s, &b_e )) {
+			// found_object(b_s.x + b_e.x / 2 + b_s.x, b_s.y + b_e.y / 2 + b_s.y);
+			// TODO: send to shmem
 
-			obj.cm_x = cm_x;
-			obj.cm_y = cm_y;
-			memcpy(obj.obj_name, "square", 7);
+			if (varDispShMemActiveFlag) {
+				// create object
+				struct detected_obj obj;
 
-			// copy to shmem
-			memcpy(&((struct detected_obj *)varDispShMemPtr)[0], &obj, sizeof(struct detected_obj));
-		}
+				obj.cm_x = cm_x;
+				obj.cm_y = cm_y;
+				memcpy(obj.obj_name, "square", 7);
 
-		if (varDispSemActiveFlag) {
-			// post semaphore
-			if ((sem_post(varDispSemAddr)) != 0) {
-			perror("Error posting semapore for image display"); /* save error in errno */
-			int status = EXIT_FAILURE;
-			pthread_exit(&status);
+				// copy to shmem
+				memcpy(&((struct detected_obj *)varDispShMemPtr)[0], &obj, sizeof(struct detected_obj));
 			}
-		}
 
-	} else {
-		printf("RedSquare not found\n");
-	}			
+			if (varDispSemActiveFlag) {
+				// post semaphore
+				if ((sem_post(varDispSemAddr)) != 0) {
+					perror("Error posting semapore for image display"); /* save error in errno */
+					int status = EXIT_FAILURE;
+					pthread_exit(&status);
+				}
+			}
+
+		} else {
+			printf("RedSquare not found\n");
+		}
     }
 }
 
