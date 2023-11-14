@@ -168,7 +168,7 @@ int initializeMain(){
 
   struct sched_param parmLandmark;
   pthread_attr_getschedparam (&attr, &parmLandmark);
-  parmLandmark.sched_priority = 94;
+  parmLandmark.sched_priority = 92;
   pthread_attr_setschedparam(&attr, &parmLandmark);
 
   pthread_create(&tIdWork[1], &attr, (void *)detect_landmark, NULL);
@@ -198,7 +198,7 @@ int initializeMain(){
 
   struct sched_param parmRed;
   pthread_attr_getschedparam (&attr, &parmRed);
-  parmRed.sched_priority = 92;
+  parmRed.sched_priority = 94;
   pthread_attr_setschedparam(&attr, &parmRed);
 
   pthread_create(&tIdWork[3], &attr, (void *)detect_red_square, NULL);
@@ -416,7 +416,7 @@ int main(int argc, char *argv[]) {
  * callTasks() function
  *****************************************************/
 void callTasks(int frameCounter) {
-  if (frameCounter % 4 == 0) {
+  if (frameCounter % 5 == 0) {
     if ((sem_post(&detectObstaclesCR)) != 0) { /* enter monitor */
         perror("Error posting semapore for obstacle detection");  /* save error in errno */
         int status = EXIT_FAILURE;
