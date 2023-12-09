@@ -3,14 +3,12 @@
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.
  */
-
-static void initialization(void);
+static void rtdb_initialization(void);
 
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension
  * */
-int openDb(const char *name);
-
+int open_db(const char *name);
 
 /*
  * get state of button identified by *btn* in this database
@@ -27,14 +25,8 @@ int get_led(int led);
 */
 int add_temp(double temp);
 
-
 /*
- * destroy cab
- *
- * */
-/*
- * destroy cab
- *
+ * stop rtdb thread
  * */
 int closeDb(void);
 

@@ -185,7 +185,7 @@ int main(void) {
   gpio_add_callback(button4.port, &gpio_callback_button4);
 
 
-
+  // start the threads
 
   return 0;
 }

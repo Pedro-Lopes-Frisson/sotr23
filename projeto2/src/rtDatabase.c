@@ -30,7 +30,7 @@ static double min_temp;
 static double max_temp;
 static int temps_saved;
 
-static void initialization(void) {
+static void rtdb_initialization(void) {
   // set initial values for each array
   for (i = 0; i < 4; i++) {
     leds[i] = 0;
@@ -46,14 +46,14 @@ static void initialization(void) {
   temps_saved = 0;
 }
 
-int openDb(const char *name) {
+int open_rtdb(const char *name) {
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
   // initialize data structures
-  pthread_once(&init, initialization);
+  pthread_once(&init, rtdb_initialization);
 
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
@@ -178,7 +178,6 @@ int get_btn(int btn) {
 
   return val;
 }
-
 
 void get_leds(int * l){
     if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
