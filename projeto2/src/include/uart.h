@@ -1,4 +1,9 @@
-#include "./fifo.h"
+#include <stdint.h>   // Include the necessary header file for uint8_t and uint16_t types
+#include "fifo.h"     // Include the header file for the FIFO
+
+#define RXBUF_SIZE 60   /* RX buffer size */
+#define TXBUF_SIZE 60   /* TX buffer size */
+#define RX_TIMEOUT 1000 /* Inactivity period after the instant when last char was received that triggers an rx event (in us) */
 
 /**
  * @brief initialize uart
@@ -16,6 +21,10 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
  * @brief send data through uart
  * 
  */
-void uart_send_data(uint8_t *data, uint16_t len);
+int uart_send_data(uint8_t *data);
 
+/**
+ * @brief get the FIFO
+ * 
+ */
 struct FIFO *get_fifo(void);

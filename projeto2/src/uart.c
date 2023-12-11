@@ -11,10 +11,6 @@
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-#define RXBUF_SIZE 60                   /* RX buffer size */
-#define TXBUF_SIZE 60                   /* TX buffer size */
-#define RX_TIMEOUT 1000                 /* Inactivity period after the instant when last char was received that triggers an rx event (in us) */
-
 /** \brief flag which warrants that the data transfer region is initialized
  * exactly once */
 static pthread_once_t init = PTHREAD_ONCE_INIT;
@@ -112,6 +108,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
             /*
                 RX timeout occurred and data is available:
+                0. send reception confirmation
                 1. copy the data to the rx buffer
                 2. understand the message
                     2.1 if the message is a command, execute it (e.g. toggle led)
@@ -166,12 +163,13 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
     }
 }
 
-void uart_send_data(uint8_t *data) {
-    err = uart_tx(uart_dev, welcome_mesg, sizeof(welcome_mesg), SYS_FOREVER_MS);
+int uart_send_data(uint8_t *data) {
+    err = uart_tx(uart_dev, data, sizeof(data), SYS_FOREVER_MS);
     if (err) {
         printk("uart_tx() error. Error code:%d\n\r",err);
-        return;
+        return FATAL_ERR;
     }
+    return OK;
 }
 
 struct FIFO *get_fifo(void) {
