@@ -8,7 +8,7 @@ static void rtdb_initialization(void);
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension
  * */
-int open_db(const char *name);
+int open_rtdb(const char *name);
 
 /*
  * get state of button identified by *btn* in this database
@@ -45,4 +45,7 @@ void get_leds(int * l);
 void get_btns(int * b);
 int add_temp(double temp) ;
 int get_temps(double *t) ;
-int reset_temps() ;
+void get_last_temp(double *t) ;
+void get_max_temp(double *t) ;
+void get_min_temp(double *t) ;
+void reset_temps() ;

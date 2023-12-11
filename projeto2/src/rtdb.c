@@ -1,4 +1,4 @@
-#include "./include/rtDatabase.h"
+#include "./include/rtdb.h"
 #include <locale.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -52,6 +52,7 @@ int open_rtdb(const char *name) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
   // initialize data structures
   pthread_once(&init, rtdb_initialization);
 
@@ -130,6 +131,7 @@ int set_btns(const int *b) {
     pthread_exit(&status);
   }
 }
+
 int set_leds(const int *l) {
   if ((pthread_mutex_lock(&accessCR)) != 0) {
     perror("error on entering monitor(CF)");
@@ -215,7 +217,6 @@ void get_btns(int * b){
   }
 }
 
-
 int add_temp(double temp) {
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
@@ -247,8 +248,66 @@ int add_temp(double temp) {
     pthread_exit(&status);
   }
 }
+
+void get_last_temp(double *t) {
+  if ((pthread_mutex_lock(&accessCR)) != 0) {
+    perror("error on entering monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+
+  if (temps_saved == 0) {
+    *t = 0.0f;
+  }
+  else if (idx == 0)
+  {
+    *t = temps[19];
+  }  
+  else {
+    *t = temps[idx - 1];
+  }
+
+  if ((pthread_mutex_unlock(&accessCR)) != 0) {
+    perror("error on exiting monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+}
+
+void get_max_temp(double *t) {
+  if ((pthread_mutex_lock(&accessCR)) != 0) {
+    perror("error on entering monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+
+  *t = max_temp;
+
+  if ((pthread_mutex_unlock(&accessCR)) != 0) {
+    perror("error on exiting monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+}
+
+void get_min_temp(double *t) {
+  if ((pthread_mutex_lock(&accessCR)) != 0) {
+    perror("error on entering monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+
+  *t = min_temp;
+
+  if ((pthread_mutex_unlock(&accessCR)) != 0) {
+    perror("error on exiting monitor(CF)");
+    int status = EXIT_FAILURE;
+    pthread_exit(&status);
+  }
+}
+
 /*
- * return the number of valiid temperatures that were copied to the input
+ * return the number of valid temperatures that were copied to the input
  * parameter temps
  */
 int get_temps(double *t) {
@@ -257,10 +316,15 @@ int get_temps(double *t) {
     int status = EXIT_FAILURE;
     pthread_exit(&status);
   }
+
+  int index = idx;
+
   int temps_returned = temps_saved;
   for (i = 0; i < temps_returned; i++) {
-    t[i] = temps[i];
+    t[i] = temps[(20+index)%20];
+    index--;
   }
+
   if ((pthread_mutex_unlock(&accessCR)) != 0) { /* exit monitor */
     perror("error on exiting monitor(CF)");     /* save error in errno */
     int status = EXIT_FAILURE;
@@ -270,7 +334,7 @@ int get_temps(double *t) {
   return temps_returned;
 }
 
-int reset_temps() {
+void reset_temps() {
   if ((pthread_mutex_lock(&accessCR)) != 0) { /* enter monitor */
     perror("error on entering monitor(CF)");  /* save error in errno */
     int status = EXIT_FAILURE;
