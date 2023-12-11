@@ -187,6 +187,7 @@ void main(void) {
   gpio_add_callback(button4.port, &gpio_callback_button4);
   struct k_thread sync_task_tid_data;
 
+<<<<<<< HEAD
   k_tid_t sync_task_tid = k_thread_create(
       &sync_task_tid_data, sync_io_thread_stack_area,
       K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
@@ -204,6 +205,12 @@ void main(void) {
     k_msleep(SLEEP_TIME_MS);
   }
   return;
+=======
+
+  // start the threads
+
+  return 0;
+>>>>>>> origin/master
 }
 
 void callback_btn0(const struct device *dev, struct gpio_callback *cb,
