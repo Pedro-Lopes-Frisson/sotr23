@@ -1,4 +1,6 @@
-#include <stdint.h>
+#ifndef RTDATABASE_H
+#define RTDATABASE_H
+
 /**
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.
@@ -48,3 +50,5 @@ void get_last_temp(uint8_t *t) ;
 void get_max_temp(uint8_t *t) ;
 void get_min_temp(uint8_t *t) ;
 int reset_temps() ;
+
+#endif

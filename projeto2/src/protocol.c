@@ -89,8 +89,26 @@ char* get_payload(char *msg) {
     return payload;
 }
 
+uint8_t* get_ack_msg(char* msg) {
+    // ACK message example: !1Z01236#
+    // Format: {sync_symbol}{tx_device_id}{command_id}{payload}{checksum}{end_symbol}
+    // Payload: {command_id_received}{error_code}
+    // Size: 1+1+1+2+3+1 = 9
+
+    /* Get the error code */
+    int error_code = msg_is_valid(msg);
+    char payload[2] = {msg[2], error_code + '0'};
+
+    /* Get the checksum */
+    int checksum = calculate_checksum(payload, 2);
+
+    uint8_t uint8_msg[TXBUF_SIZE];
+    sprint(uint8_msg, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'Z', payload, checksum, END_SYMBOL);
+    return uint8_msg;
+}
+
 // Check if the payload is valid
-bool payload_is_valid(char *msg, int msg_size) {
+bool payload_is_valid(char* msg, int msg_size) {
     // payload_size = msg_size - (3 + 4)
     // 3 bytes for the {sync_symbol}{tx_device_id}{command_id}
     // 4 bytes for the {checksum}{end_symbol}
@@ -108,7 +126,7 @@ bool payload_is_valid(char *msg, int msg_size) {
     return (msg_size - (3 + 4) == payload_size);
 }
 
-void analyse_msg(char *msg) {
+void analyse_msg(char* msg) {
     // We know that the message is valid
     // Get the command ID
     char command_id = msg[2];

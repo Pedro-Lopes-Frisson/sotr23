@@ -6,7 +6,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys_clock.h>
 
-#include "../rtdatabase/rtdb.h"
+#include "../include/rtdb.h"
 
 #define STACKSIZE 1024
 #define THREAD0_PRIORITY 7
@@ -45,7 +45,7 @@ static const struct gpio_dt_spec button4 = GPIO_DT_SPEC_GET(SW3_NODE, gpios);
 
 /* LED0_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 /* LED2_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED1_NODE DT_ALIAS(led1)
@@ -112,7 +112,7 @@ void main(void) {
     return;
   }
 
-  ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+  ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE);
   if (ret < 0) {
     return;
   }
@@ -250,22 +250,22 @@ void main(void) {
 void callback_btn0(const struct device *dev, struct gpio_callback *cb,
                    const gpio_port_pins_t pins) {
   toggle_btn(0);
-  set_led(0, !get_led(0));
+  // set_led(0, !get_led(0));
 }
 void callback_btn1(const struct device *dev, struct gpio_callback *cb,
                    const gpio_port_pins_t pins) {
   toggle_btn(1);
-  set_led(1, !get_led(1));
+  // set_led(1, !get_led(1));
 }
 void callback_btn2(const struct device *dev, struct gpio_callback *cb,
                    const gpio_port_pins_t pins) {
   toggle_btn(2);
-  set_led(2, !get_led(2));
+  // set_led(2, !get_led(2));
 }
 void callback_btn3(const struct device *dev, struct gpio_callback *cb,
                    const gpio_port_pins_t pins) {
   toggle_btn(3);
-  set_led(3, !get_led(3));
+  // set_led(3, !get_led(3));
 }
 void sync_io_thread(void *, void *, void *) {
   int leds_values[4] = {0, 0, 0, 0};

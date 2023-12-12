@@ -158,8 +158,8 @@ int reset_temps() {
   k_mutex_lock(&accessCR, K_FOREVER);
 
   temps_saved = 0;
-  min_temp = 0.0f;
-  max_temp = 0.0f;
+  min_temp = 0.0;
+  max_temp = 0.0;
   idx = 0;
 
   k_mutex_unlock(&accessCR);
