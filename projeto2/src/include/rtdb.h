@@ -1,3 +1,5 @@
+#ifndef RTDATABASE_H
+#define RTDATABASE_H
 
 /**
  *  \brief Initialization of the data transfer region.
@@ -49,3 +51,5 @@ void get_last_temp(double *t) ;
 void get_max_temp(double *t) ;
 void get_min_temp(double *t) ;
 void reset_temps() ;
+
+#endif
