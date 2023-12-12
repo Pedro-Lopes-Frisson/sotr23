@@ -5,7 +5,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys_clock.h>
 
-#include "../rtdatabase/rtDatabase.h"
+#include "./include/rtdb.h"
 
 #define STACKSIZE 1024
 #define THREAD0_PRIORITY 7
@@ -42,7 +42,7 @@ static const struct gpio_dt_spec button4 = GPIO_DT_SPEC_GET(SW3_NODE, gpios);
 
 /* LED0_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 /* LED2_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED1_NODE DT_ALIAS(led1)
@@ -97,7 +97,7 @@ void main(void) {
     return;
   }
 
-  ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+  ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE);
   if (ret < 0) {
     return;
   }
@@ -114,7 +114,7 @@ void main(void) {
     return;
   }
 
-  gpio_pin_set_dt(&led, 0);
+  gpio_pin_set_dt(&led0, 0);
   gpio_pin_set_dt(&led1, 0);
   gpio_pin_set_dt(&led2, 0);
   gpio_pin_set_dt(&led3, 0);
@@ -187,7 +187,6 @@ void main(void) {
   gpio_add_callback(button4.port, &gpio_callback_button4);
   struct k_thread sync_task_tid_data;
 
-<<<<<<< HEAD
   k_tid_t sync_task_tid = k_thread_create(
       &sync_task_tid_data, sync_io_thread_stack_area,
       K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
@@ -205,12 +204,6 @@ void main(void) {
     k_msleep(SLEEP_TIME_MS);
   }
   return;
-=======
-
-  // start the threads
-
-  return 0;
->>>>>>> origin/master
 }
 
 void callback_btn0(const struct device *dev, struct gpio_callback *cb,
