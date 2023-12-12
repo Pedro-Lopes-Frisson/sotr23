@@ -1,4 +1,4 @@
-
+#include <stdint.h>
 /**
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.
@@ -23,7 +23,7 @@ int get_led(int led);
 /*
  * add new temperature value
 */
-int add_temp(double temp);
+int add_temp(uint8_t temp);
 
 /*
  * stop rtdb thread
@@ -43,9 +43,8 @@ int get_led(int led) ;
 int get_btn(int btn) ;
 void get_leds(int * l);
 void get_btns(int * b);
-int add_temp(double temp) ;
-int get_temps(double *t) ;
-void get_last_temp(double *t) ;
-void get_max_temp(double *t) ;
-void get_min_temp(double *t) ;
-void reset_temps() ;
+int get_temps(uint8_t *t) ;
+void get_last_temp(uint8_t *t) ;
+void get_max_temp(uint8_t *t) ;
+void get_min_temp(uint8_t *t) ;
+int reset_temps() ;
