@@ -1,5 +1,9 @@
-#include <stdint.h>   // Include the necessary header file for uint8_t and uint16_t types
+#ifndef UART_H
+#define UART_H
+
 #include "fifo.h"     // Include the header file for the FIFO
+
+#include <stdint.h>   // Include the necessary header file for uint8_t and uint16_t types
 
 #define RXBUF_SIZE 60   /* RX buffer size */
 #define TXBUF_SIZE 60   /* TX buffer size */
@@ -28,3 +32,5 @@ int uart_send_data(uint8_t *data);
  * 
  */
 struct FIFO *get_fifo(void);
+
+#endif

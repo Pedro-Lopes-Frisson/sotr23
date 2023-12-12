@@ -5,7 +5,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys_clock.h>
 
-#include "./include/rtDatabase.h"
+#include "./include/rtdb.h"
 
 #define STACKSIZE 1024
 #define THREAD0_PRIORITY 7
@@ -39,7 +39,7 @@ static const struct gpio_dt_spec button4 = GPIO_DT_SPEC_GET(SW3_NODE, gpios);
 
 /* LED0_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+static const struct gpio_dt_spec led0 = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
 /* LED2_NODE is the devicetree node identifier for the "led0" alias. */
 #define LED1_NODE DT_ALIAS(led1)
@@ -63,7 +63,7 @@ int main(void) {
 
   int ret;
 
-  if (!device_is_ready(led.port)) {
+  if (!device_is_ready(led0.port)) {
     return 1;
   }
   /* STEP 4 - Verify that the device is ready for use */
@@ -94,7 +94,7 @@ int main(void) {
     return 1;
   }
 
-  ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+  ret = gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE);
   if (ret < 0) {
     return;
   }
@@ -111,7 +111,7 @@ int main(void) {
     return;
   }
 
-  gpio_pin_set_dt(&led, 0);
+  gpio_pin_set_dt(&led0, 0);
   gpio_pin_set_dt(&led1, 0);
   gpio_pin_set_dt(&led2, 0);
   gpio_pin_set_dt(&led3, 0);

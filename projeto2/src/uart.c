@@ -1,4 +1,6 @@
 #include "./include/uart.h"
+#include "./include/fifo.h" 
+#include "./include/protocol.h"
 
 #include <zephyr/drivers/uart.h>    /* for ADC API*/
 #include <pthread.h>                /* for pthread_mutex_t */
@@ -94,35 +96,41 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
         case UART_RX_RDY:
             printk("UART_RX_RDY event \n\r");
 
-            /* Check if the rx buffer is full */
-            // if (uart_rxbuf_nchar >= RXBUF_SIZE) {
-            //     printk("RX buffer is full \n\r");
-            //     break;
-            // }
-
-            /* Check if the received data fits in the rx buffer */
-            // if (evt->data.rx.len > (RXBUF_SIZE - uart_rxbuf_nchar)) {
-            //     printk("RX no space available \n\r");
-            //     break;
-            // }
+            /* Check if the message fits in the fifo */
+            if (evt->data.rx.len >= RXBUF_SIZE) {
+                printk("FIFO is full \n\r");
+                break;
+            }
 
             /*
                 RX timeout occurred and data is available:
                 0. send reception confirmation
-                1. copy the data to the rx buffer
-                2. understand the message
-                    2.1 if the message is a command, execute it (e.g. toggle led)
-                    2.2 if the message is a request, send the response (e.g. send the value of a sensor)
-                3. send the response
-                4. reset the rx buffer
+                1. cast message from uint8_t to char
+                2. copy the data to the FIFO
+                3. analyse the message (this will run in a separate thread)
+                    3.1 if the message is a command, execute it (e.g. toggle led)
+                    3.2 if the message is a request, send the response (e.g. send the value of a sensor)
             */
 
-            /* Copy the received data to the rx buffer */
+            /* Convert the message from uint8_t to char */
+            char rx_chars[evt->data.rx.len];
             memcpy(
-                &rx_chars[uart_rxbuf_nchar],
+                rx_chars,
                 &(rx_buf[evt->data.rx.offset]),
                 evt->data.rx.len
-            ); 
+            );
+
+            /* Get reception confirmation */
+            uint8_t rep_mesg[] = get_ack_msg(rx_chars);
+
+            /* Send reception confirmation */
+            err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
+            if (err) {
+                printk("uart_tx() error. Error code:%d\n\r",err);
+            }
+
+            /* Copy the received data to the FIFO */
+            fifo_push(fifo, rx_chars, evt->data.rx.len);
             uart_rxbuf_nchar++;
 
             break;
