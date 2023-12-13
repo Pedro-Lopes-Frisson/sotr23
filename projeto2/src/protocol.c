@@ -130,7 +130,7 @@ void analyse_msg(char* msg) {
     // We know that the message is valid
     // Get the command ID
     char command_id = msg[2];
-
+    printk("Command: %c\n", msg[2]);
     // 0 - Set the value of one of the digital outputs (Leds)
     // 1 - Set the value of all the digital outputs (atomic operation)
     // 2 - Read the value of the digital inputs
@@ -178,6 +178,7 @@ void analyse_msg(char* msg) {
 
 void set_digital_output(char* msg) {
     // Get the payload from the message
+    printk("msg: --- %s\n", msg);
     char* payload = get_payload(msg);
 
     // Payload: ‘1’...’4’ (Led #, 1 byte) + {‘0’,’1’} (On/Off, one byte)
@@ -198,7 +199,8 @@ void set_digital_output(char* msg) {
 void set_all_digital_outputs(char* msg) {
     // Get the payload from the message
     char* payload = get_payload(msg);
-
+    printk("MSG:    %s\n", msg);
+    printk("Payload:    %s\n", msg);
     // Payload: {‘0’,’1’}+{‘0’,’1’}+{‘0’,’1’}+{‘0’,’1’} (On/Off, one byte, Led 1 to Led 4, left to right)
 
     // Set the pin values

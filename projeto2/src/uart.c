@@ -72,7 +72,7 @@ int uart_initialization(void) {
 void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *user_data) {
     char rx_chars[RXBUF_SIZE];    /* Received message */
     int err, err_code;
-
+    int msg_size = 0;
     switch (evt->type) {
 
         case UART_TX_DONE:
@@ -112,6 +112,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
                 uint8_t rep_mesg[TXBUF_SIZE]; 
                 err_code = get_ack_msg(rx_chars, rep_mesg);
                 rx_chars[RXBUF_SIZE-1] = '\0';
+                printk("ECHO: %d\n", rx_chars);
                 /* Send reception confirmation */
                 err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
                 if (err) {
