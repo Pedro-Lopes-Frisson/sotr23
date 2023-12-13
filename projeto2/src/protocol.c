@@ -306,14 +306,14 @@ void send_temp_message(int temp, char command_id) {
 
 void read_last_temperature() {
     // Get the last temperature from the rtdb
-    double last_temperature;
+    uint8_t last_temperature;
     get_temp(&last_temperature);
 
     send_temp_message(last_temperature, 'C');
 }
 
 void read_all_last_temperatures() {
-    double last_temperatures[20];
+    uint8_t last_temperatures[20];
     int n_temps = get_temps(last_temperatures);
 
     for (int i = 0; i < n_temps; i++) {
@@ -322,12 +322,12 @@ void read_all_last_temperatures() {
 }
 
 void read_min_max_temp() {
-    double max_temperature;
+    uint8_t max_temperature;
     get_max_temp(&max_temperature);
 
     send_temp_message(max_temperature, 'E');
 
-    double min_temperature;
+    uint8_t min_temperature;
     get_min_temp(&min_temperature);
 
     send_temp_message(min_temperature, 'E');
