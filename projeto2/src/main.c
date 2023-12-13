@@ -7,6 +7,9 @@
 #include <zephyr/sys_clock.h>
 
 #include "../include/rtdb.h"
+#include "../include/protocol.h"
+#include "../include/uart.h"
+#include "../include/fifo.h"
 
 #define STACKSIZE 1024
 #define THREAD0_PRIORITY 7
@@ -71,9 +74,11 @@ static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C0_NID);
 // static struct k_thread_stack *Task1_stack_area;
 K_THREAD_STACK_DEFINE(sync_io_thread_stack_area, STACKSIZE);
 K_THREAD_STACK_DEFINE(temp_sampling_stack_area, STACKSIZE);
+K_THREAD_STACK_DEFINE(process_messages_stack_area, STACKSIZE);
 
 void sync_io_thread(void *, void *, void *);
 void read_temp_samples(void *, void *, void *);
+void process_message(void*,void*,void*);
 
 k_tid_t thds_ids[4];
 struct k_thread thds[4];
@@ -232,7 +237,13 @@ void main(void) {
       NULL, NULL, NULL,    /* Three optional arguments */
       THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
       K_NO_WAIT);
-
+  thds_ids[2] = k_thread_create(
+      &thds[2], process_messages_stack_area,
+      K_THREAD_STACK_SIZEOF(process_messages_stack_area),
+      process_message,   /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL,    /* Three optional arguments */
+      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      K_NO_WAIT);
   int j = 0;
   int k = 0;
 
@@ -281,7 +292,6 @@ void sync_io_thread(void *, void *, void *) {
   }
 }
 
-// TODO fix i2c
 void read_temp_samples(void *, void *, void *) {
   uint8_t temp = 0; /* Temperature value (raw read from sensor)*/
   int ret;
@@ -301,3 +311,19 @@ void read_temp_samples(void *, void *, void *) {
     k_msleep(UPDATE_PERIOD_MS);
   }
 }
+
+void process_message(void*,void*,void*){
+
+  struct FIFO * fifo = get_fifo();
+  char* msg_char;
+  while(1){
+    msg_char = fifo_pop(fifo);
+    if(msg_char == NULL)
+    {
+      k_msleep(1000);
+    }
+    analyse_msg(msg_char);
+  }
+
+}
+
