@@ -4,9 +4,6 @@
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-/** \brief flag which warrants that the data transfer region is initialized
- * exactly once */
-static pthread_once_t init = PTHREAD_ONCE_INIT;
 
 /** \brief locking flag which warrants mutual exclusion inside the monitor */
 K_MUTEX_DEFINE(accessCR);
@@ -43,98 +40,90 @@ static void initialization(void) {
 
 int openDb(const char *name) {
 
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   // initialize data structures
   initialization();
 
-	k_mutex_unlock(&test_mutex);
+	k_mutex_unlock(&accessCR);
 
   return EXIT_SUCCESS;
 }
 
 int set_btn(int btn, int val) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   btns[btn] = val;
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 int toggle_btn(int btn) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   btns[btn] = !btns[btn];
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 
 int set_led(int led, int val) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   leds[led] = val;
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 int set_btns(const int *b) {
-  if ((pthread_mutex_lock(&accessCR)) != 0) {
-    perror("error on entering monitor(CF)");
-    int status = EXIT_FAILURE;
-    pthread_exit(&status);
-  }
+  k_mutex_lock(&accessCR, K_FOREVER);
 
   for (i = 0; i < 4; i++) {
     btns[i] = b[i];
   }
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 int set_leds(const int *l) {
-  if ((pthread_mutex_lock(&accessCR)) != 0) {
-    perror("error on entering monitor(CF)");
-    int status = EXIT_FAILURE;
-    pthread_exit(&status);
-  }
+k_mutex_lock(&accessCR, K_FOREVER);
   for (i = 0; i < 4; i++) {
     leds[i] = l[i];
   }
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 int get_led(int led) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
   int val = leds[led];
-	k_mutex_unlock(&test_mutex);
+	k_mutex_unlock(&accessCR);
   return val;
 }
 
 int get_btn(int btn) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
   int val = btns[btn];
-	k_mutex_unlock(&test_mutex);
+	k_mutex_unlock(&accessCR);
   return val;
 }
 
 
 void get_leds(int * l){
-  	k_mutex_lock(&test_mutex, K_FOREVER);
+  	k_mutex_lock(&accessCR, K_FOREVER);
 
 
   for(i = 0; i < 4; i++){
     l[i] = leds[i];
   }
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 void get_btns(int * b){
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   for(i = 0; i < 4; i++){
     b[i] = btns[i];
   }
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 
 int add_temp(double temp) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
   temps[idx] = temp;
   idx = (idx + 1) % 20;
 
@@ -154,29 +143,29 @@ int add_temp(double temp) {
 
   temps_saved++;
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 /*
  * return the number of valiid temperatures that were copied to the input
  * parameter temps
  */
 int get_temps(double *t) {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
   int temps_returned = temps_saved;
   for (i = 0; i < temps_returned; i++) {
     t[i] = temps[i];
   }
-	k_mutex_unlock(&test_mutex);
+	k_mutex_unlock(&accessCR);
   return temps_returned;
 }
 
 int reset_temps() {
-	k_mutex_lock(&test_mutex, K_FOREVER);
+	k_mutex_lock(&accessCR, K_FOREVER);
 
   temps_saved = 0;
   min_temp = 0.0f;
   max_temp = 0.0f;
   idx = 0;
 
-	k_mutex_unlock(&test_mutex);}
+	k_mutex_unlock(&accessCR);}
 
 int closeDb(void) { return EXIT_SUCCESS; }

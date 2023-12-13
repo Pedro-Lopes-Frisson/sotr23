@@ -1,6 +1,8 @@
 #ifndef RTDATABASE_H
 #define RTDATABASE_H
 
+#include <stdint.h>
+
 /**
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.

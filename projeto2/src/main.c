@@ -320,7 +320,7 @@ void process_message(void*,void*,void*){
     msg_char = fifo_pop(fifo);
     if(msg_char == NULL)
     {
-      k_msleep(1000);
+      k_msleep(5000);
     }
     analyse_msg(msg_char);
   }
