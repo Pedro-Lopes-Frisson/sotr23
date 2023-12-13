@@ -73,6 +73,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
     char rx_chars[RXBUF_SIZE];    /* Received message */
     int err, err_code;
     int msg_size = 0;
+    char valid_message[60];
     switch (evt->type) {
 
         case UART_TX_DONE:
@@ -110,7 +111,11 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Get reception confirmation */
                 uint8_t rep_mesg[TXBUF_SIZE]; 
-                err_code = get_ack_msg(rx_chars, rep_mesg);
+                err_code = get_ack_msg(rx_chars, rep_mesg, &valid_message);
+                if(err_code == -1) // no valid message was found
+                {
+
+                }
                 rx_chars[RXBUF_SIZE-1] = '\0';
                 printk("ECHO: %d\n", rx_chars);
                 /* Send reception confirmation */
@@ -121,7 +126,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Copy the received data to the FIFO */
                 if (err_code == 1) {
-                    fifo_push(fifo, rx_chars);
+                    fifo_push(fifo, valid_message);
                 }
                 uart_rxbuf_nchar++;
             }

@@ -23,6 +23,7 @@
 | Command     | CheckSum | Example Response                                                    | Description                                               |
 | :---------- | :------: | :------------------------------------------------------------------ | :-------------------------------------------------------- |
 | !0011194#   |   194    | !1Z01236#                                                           | Set led 1 to ON.                                          |
+| !0041194#   |   194    | !1Z01236#                                                           | Set led 4 to ON.                                          |
 | !011010291# |   291    | !1Z01236#                                                           | Set led 1 and 3 to ON, 2 and 4 to Off. (atomic operation) |
 | !0298#      |    98    | !1A0101259#                                                         | Read the value of the digital inputs                      |
 | !0399#      |    99    | !1B1010260#                                                         | Read the value of the digital outputs                     |

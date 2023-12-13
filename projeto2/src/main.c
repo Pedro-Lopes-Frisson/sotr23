@@ -73,99 +73,21 @@ struct k_thread thds[4];
 int main(void) {
   int ret;
 
-  if (!check_devices()) {
+  if (check_devices() == 0) {
+    printk("Devices not ready\n");
     return 1;
   }
 
-  if (leds_initialization() < -1) {
+  if (leds_initialization() != 0) {
+    printk("leds not ready\n");
     return 1;
   }
 
-  if (btns_initialization() < -1) {
+  if (btns_initialization() != 0) {
+    printk("bvtns not ready\n");
     return 1;
   }
 
-  if (!device_is_ready(dev_i2c.bus)) {
-    printk("I2C bus %s is not ready!\n\r", dev_i2c.bus->name);
-  } else {
-    printk("I2C bus %s, device address %x ready\n\r", dev_i2c.bus->name,
-           dev_i2c.addr);
-  }
-  /* Write (command RTR) to set the read address to temperature */
-  /* Only necessary if a config done before (not the case), but let's stay in
-   * the safe side */
-  ret = i2c_write_dt(&dev_i2c, TC74_CMD_RTR, 1);
-  if (ret != 0) {
-    printk("Failed to write to I2C device at address %x, register %x \n\r",
-           dev_i2c.addr, TC74_CMD_RTR);
-  }
-  uart_initialization();
-
-  /* Create threads */
-  thds_ids[0] = k_thread_create(
-      &thds[0], sync_io_thread_stack_area,
-      K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
-      sync_io_thread,      /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
-      K_NO_WAIT);
-  thds_ids[1] = k_thread_create(
-      &thds[1], temp_sampling_stack_area,
-      K_THREAD_STACK_SIZEOF(temp_sampling_stack_area),
-      read_temp_samples,   /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
-      K_NO_WAIT);
-  thds_ids[2] = k_thread_create(
-      &thds[2], process_messages_stack_area,
-      K_THREAD_STACK_SIZEOF(process_messages_stack_area),
-      process_message,     /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
-      K_NO_WAIT);
-
-  while (1) {
-    for (int i = 0; i < 2; i++) {
-      k_thread_join(&thds[i], K_MSEC(1000));
-    }
-  }
-
-  return 0;
-}
-
-/* CHECK IF THE DEVICES ARE READY */
-int check_devices() {
-  return (device_is_ready(led0.port) && device_is_ready(led1.port) &&
-          device_is_ready(led2.port) && device_is_ready(led3.port) &&
-          device_is_ready(button0.port) && device_is_ready(button1.port) &&
-          device_is_ready(button2.port) && device_is_ready(button3.port));
-}
-
-/* INITIALIZE LEDS */
-int leds_initialization() {
-  if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE) < 0) {
-    return -1;
-  }
-  if (gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE) < 0) {
-    return -1;
-  }
-  if (gpio_pin_configure_dt(&led2, GPIO_OUTPUT_ACTIVE) < 0) {
-    return -1;
-  }
-  if (gpio_pin_configure_dt(&led3, GPIO_OUTPUT_ACTIVE) < 0) {
-    return -1;
-  }
-
-  gpio_pin_set_dt(&led0, 0);
-  gpio_pin_set_dt(&led1, 0);
-  gpio_pin_set_dt(&led2, 0);
-  gpio_pin_set_dt(&led3, 0);
-
-  return 0;
-}
-
-/* INITIALIZE BUTTONS */
-int btns_initialization() {
   /* BUTTON 0 */
   if (gpio_pin_configure_dt(&button0, GPIO_INPUT) < 0) {
     return -1;
@@ -210,8 +132,86 @@ int btns_initialization() {
   gpio_init_callback(&gpio_callback_button3, callback_btn3, BIT(button3.pin));
   gpio_add_callback(button3.port, &gpio_callback_button3);
 
+  if (!device_is_ready(dev_i2c.bus)) {
+    printk("I2C bus %s is not ready!\n\r", dev_i2c.bus->name);
+  } else {
+    printk("I2C bus %s, device address %x ready\n\r", dev_i2c.bus->name,
+           dev_i2c.addr);
+  }
+  /* Write (command RTR) to set the read address to temperature */
+  /* Only necessary if a config done before (not the case), but let's stay in
+   * the safe side */
+  ret = i2c_write_dt(&dev_i2c, TC74_CMD_RTR, 1);
+  if (ret != 0) {
+    printk("Failed to write to I2C device at address %x, register %x \n\r",
+           dev_i2c.addr, TC74_CMD_RTR);
+  }
+  uart_initialization();
+
+  /* Create threads */
+  thds_ids[0] = k_thread_create(
+      &thds[0], sync_io_thread_stack_area,
+      K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
+      sync_io_thread,      /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL,    /* Three optional arguments */
+      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      K_NO_WAIT);
+  thds_ids[1] = k_thread_create(
+      &thds[1], temp_sampling_stack_area,
+      K_THREAD_STACK_SIZEOF(temp_sampling_stack_area),
+      read_temp_samples,   /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL,    /* Three optional arguments */
+      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      K_NO_WAIT);
+  thds_ids[2] = k_thread_create(
+      &thds[2], process_messages_stack_area,
+      K_THREAD_STACK_SIZEOF(process_messages_stack_area),
+      process_message,     /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL,    /* Three optional arguments */
+      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      K_NO_WAIT);
+  while (1) {
+    for (int i = 0; i < 2; i++) {
+      k_thread_join(&thds[i], K_MSEC(1000));
+    }
+  }
+
   return 0;
 }
+
+/* CHECK IF THE DEVICES ARE READY */
+int check_devices() {
+  return (device_is_ready(led0.port) && device_is_ready(led1.port) &&
+          device_is_ready(led2.port) && device_is_ready(led3.port) &&
+          device_is_ready(button0.port) && device_is_ready(button1.port) &&
+          device_is_ready(button2.port) && device_is_ready(button3.port));
+}
+
+/* INITIALIZE LEDS */
+int leds_initialization() {
+  if (gpio_pin_configure_dt(&led0, GPIO_OUTPUT_ACTIVE) < 0) {
+    return -1;
+  }
+  if (gpio_pin_configure_dt(&led1, GPIO_OUTPUT_ACTIVE) < 0) {
+    return -1;
+  }
+  if (gpio_pin_configure_dt(&led2, GPIO_OUTPUT_ACTIVE) < 0) {
+    return -1;
+  }
+  if (gpio_pin_configure_dt(&led3, GPIO_OUTPUT_ACTIVE) < 0) {
+    return -1;
+  }
+
+  gpio_pin_set_dt(&led0, 0);
+  gpio_pin_set_dt(&led1, 0);
+  gpio_pin_set_dt(&led2, 0);
+  gpio_pin_set_dt(&led3, 0);
+
+  return 0;
+}
+
+/* INITIALIZE BUTTONS */
+int btns_initialization() { return 0; }
 
 /* BUTTON CALLBACKS */
 void callback_btn0(const struct device *dev, struct gpio_callback *cb,
@@ -220,7 +220,6 @@ void callback_btn0(const struct device *dev, struct gpio_callback *cb,
 }
 void callback_btn1(const struct device *dev, struct gpio_callback *cb,
                    const gpio_port_pins_t pins) {
-  printk("Button 1 pressed\n");
   toggle_btn(1);
 }
 void callback_btn2(const struct device *dev, struct gpio_callback *cb,
@@ -258,7 +257,7 @@ void read_temp_samples(void *, void *, void *) {
              dev_i2c.addr, TC74_CMD_RTR, ret, -EIO);
     }
 
-    printk("Last temperature reading is %d \n\r", temp);
+    // printk("Last temperature reading is %d \n\r", temp);
     add_temp(temp);
 
     /* Pause  */

@@ -48,7 +48,7 @@ void fifo_push(struct FIFO *fifo, char *data) {
 
 int fifo_pop(struct FIFO *fifo, char * data) {
   if (_is_empty(fifo)) {
-    printk("FIFO is empty\n");
+    // printk("FIFO is empty\n");
     return 1;
   }
   printk("_is_empty() = %d\n", _is_empty(fifo));
