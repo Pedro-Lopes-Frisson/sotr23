@@ -2,7 +2,6 @@
 #include "./include/protocol.h"
 
 #include <zephyr/sys/printk.h>
-#include <pthread.h>                /* for pthread_mutex_t */
 #include <stdio.h>
 #include <string.h>
 
@@ -71,7 +70,7 @@ int uart_initialization(void) {
 }
 
 void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *user_data) {
-    char rx_chars[evt->data.rx.len];    /* Received message */
+    char rx_chars[RXBUF_SIZE];    /* Received message */
     int err, err_code;
 
     switch (evt->type) {
@@ -89,7 +88,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
             /* Check if the message fits in the fifo */
             if (evt->data.rx.len >= RXBUF_SIZE) {
-                printk("FIFO is full \n\r");
+                printk("UART Buffer is full \n\r");
             }
             else {
                 /*
@@ -112,7 +111,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
                 /* Get reception confirmation */
                 uint8_t rep_mesg[TXBUF_SIZE]; 
                 err_code = get_ack_msg(rx_chars, rep_mesg);
-
+                rx_chars[RXBUF_SIZE-1] = '\0';
                 /* Send reception confirmation */
                 err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
                 if (err) {

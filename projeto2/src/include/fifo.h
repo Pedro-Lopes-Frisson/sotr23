@@ -2,9 +2,10 @@
 #define FIFO_H
 
 #include <stdbool.h>
+#define MAX_CHARS 30
 
 struct NODE {
-    char data[60];
+    char data[MAX_CHARS];
     struct NODE* next;
 };
 

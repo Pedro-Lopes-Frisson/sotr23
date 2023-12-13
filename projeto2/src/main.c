@@ -107,6 +107,7 @@ int main(void) {
       dev_i2c.addr, TC74_CMD_RTR
     );
   }
+  uart_initialization();
 
   /* Create threads */
   thds_ids[0] = k_thread_create(
@@ -287,7 +288,7 @@ void read_temp_samples(void *, void *, void *) {
              dev_i2c.addr, TC74_CMD_RTR, ret, -EIO);
     }
 
-    printk("Last temperature reading is %d \n\r", temp);
+    // printk("Last temperature reading is %d \n\r", temp);
     add_temp(temp);
 
     /* Pause  */

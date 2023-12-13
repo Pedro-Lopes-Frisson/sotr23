@@ -1,9 +1,10 @@
 #include "./include/fifo.h"
-
+#include <zephyr/sys/printk.h>
 #include <stdlib.h>
+#include <zephyr/kernel.h>
 
 struct FIFO* fifo_init() {
-    struct FIFO* fifo = (struct FIFO*)malloc(sizeof(struct FIFO));
+    struct FIFO* fifo = (struct FIFO*)k_malloc(sizeof(struct FIFO));
     if (fifo == NULL) {
         printk("Cannot allocate memory for FIFO\n");
         return NULL;
@@ -19,14 +20,14 @@ bool _is_empty(struct FIFO* fifo) {
 }
 
 void fifo_push(struct FIFO* fifo, char* data) {
-    struct NODE* new_node = (struct NODE*)malloc(sizeof(struct NODE));
+    struct NODE* new_node = (struct NODE*)k_malloc(sizeof(struct NODE));
     if (new_node == NULL) {
         printk("Cannot allocate memory for NODE\n");
         return;
     }
 
     // Copy data to new node
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < MAX_CHARS; i++) {
         new_node->data[i] = data[i];
     }
 
@@ -47,20 +48,20 @@ void fifo_push(struct FIFO* fifo, char* data) {
 }
 
 char* fifo_pop(struct FIFO* fifo) {
-    if (_is_empty(fifo)) {
+    if (!_is_empty(fifo)) {
         printk("FIFO is empty\n");
         return NULL;
     }
 
     // Allocate memory for data
-    char* data = (char*)malloc(60 * sizeof(char));
+    char* data = (char*)k_malloc(MAX_CHARS * sizeof(char));
     if (data == NULL) {
         printk("Cannot allocate memory for data\n");
         return NULL;
     }
 
     // Copy data from head node to data
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < MAX_CHARS ; i++) {
         data[i] = fifo->head->data[i];
     }
 
@@ -75,8 +76,8 @@ char* fifo_pop(struct FIFO* fifo) {
         fifo->head = fifo->head->next;
     }
 
-    // Free memory of old head node
-    free(temp);
+    // k_free memory of old head node
+    k_free(temp);
 
     return data;
 }
