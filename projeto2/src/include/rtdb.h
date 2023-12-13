@@ -7,7 +7,7 @@
  *  \brief Initialization of the data transfer region.
  *  Internal monitor operation.
  */
-static void rtdb_initialization(void);
+void rtdb_initialization(void);
 
 /*
  *  create a new CAB with specified id and with n_buffers and it's dimension
@@ -27,7 +27,7 @@ int get_led(int led);
 /*
  * add new temperature value
 */
-int add_temp(uint8_t temp);
+void add_temp(uint8_t temp);
 
 /*
  * stop rtdb thread
@@ -38,11 +38,11 @@ int closeDb(void);
 
 void get_leds(int * l);
 void get_btns(int * b);
-int set_btn(int btn, int val) ;
-int toggle_btn(int btn) ;
-int set_led(int led, int val) ;
-int set_btns(const int *b) ;
-int set_leds(const int *l) ;
+void set_btn(int btn, int val) ;
+void toggle_btn(int btn) ;
+void set_led(int led, int val) ;
+void set_btns(const int *b) ;
+void set_leds(const int *l) ;
 int get_led(int led) ;
 int get_btn(int btn) ;
 void get_leds(int * l);
@@ -51,6 +51,6 @@ int get_temps(uint8_t *t) ;
 void get_last_temp(uint8_t *t) ;
 void get_max_temp(uint8_t *t) ;
 void get_min_temp(uint8_t *t) ;
-int reset_temps() ;
+void reset_temps() ;
 
 #endif

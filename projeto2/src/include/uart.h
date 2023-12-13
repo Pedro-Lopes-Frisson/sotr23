@@ -3,7 +3,8 @@
 
 #include "fifo.h"     // Include the header file for the FIFO
 
-#include <stdint.h>   // Include the necessary header file for uint8_t and uint16_t types
+#include <zephyr/drivers/uart.h>    /* for ADC API */
+#include <stdint.h>   /* Include the necessary header file for uint8_t and uint16_t types */
 
 #define RXBUF_SIZE 60   /* RX buffer size */
 #define TXBUF_SIZE 60   /* TX buffer size */

@@ -1,3 +1,6 @@
+#ifndef FIFO_H
+#define FIFO_H
+
 #include <stdbool.h>
 
 struct NODE {
@@ -41,3 +44,5 @@ void fifo_push(struct FIFO* fifo, char* data);
  * @return char* 
  */
 char* fifo_pop(struct FIFO* fifo);
+
+#endif

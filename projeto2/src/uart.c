@@ -1,9 +1,10 @@
 #include "./include/uart.h"
-#include "./include/fifo.h" 
 #include "./include/protocol.h"
 
-#include <zephyr/drivers/uart.h>    /* for ADC API*/
+#include <zephyr/sys/printk.h>
 #include <pthread.h>                /* for pthread_mutex_t */
+#include <stdio.h>
+#include <string.h>
 
 #define UART_NODE DT_NODELABEL(uart0)   /* UART0 node ID*/
 
@@ -13,12 +14,6 @@
 #define EXIT_FAILURE 1
 #define EXIT_SUCCESS 0
 
-/** \brief flag which warrants that the data transfer region is initialized
- * exactly once */
-static pthread_once_t init = PTHREAD_ONCE_INIT;
-
-/** \brief locking flag which warrants mutual exclusion inside the monitor */
-static pthread_mutex_t accessCR = PTHREAD_MUTEX_INITIALIZER;
 
 /* Struct for UART configuration (if using default values is not needed) */
 const struct uart_config uart_cfg = {
@@ -32,7 +27,6 @@ const struct uart_config uart_cfg = {
 /* UART related variables */
 const struct device *uart_dev = DEVICE_DT_GET(UART_NODE);
 static uint8_t rx_buf[RXBUF_SIZE];      /* RX buffer, to store received data */
-static uint8_t rx_chars[RXBUF_SIZE];    /* chars actually received  */
 volatile int uart_rxbuf_nchar=0;        /* Number of chars currently on the rx buffer */
 
 struct FIFO* fifo;
@@ -60,12 +54,6 @@ int uart_initialization(void) {
         return FATAL_ERR;
     }
 
-    /* Configure UART tx */
-    if (uart_tx_enable(uart_dev, rx_buf, sizeof(rx_buf), SYS_FOREVER_MS) != 0) {
-        printk("Cannot configure UART tx\n");
-        return FATAL_ERR;
-    }
-
     /* Configure UART rx callback */
     if (uart_callback_set(uart_dev, uart_rx_callback, NULL)) {
         printk("Cannot configure UART rx callback\n");
@@ -83,6 +71,9 @@ int uart_initialization(void) {
 }
 
 void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *user_data) {
+    char rx_chars[evt->data.rx.len];    /* Received message */
+    int err, err_code;
+
     switch (evt->type) {
 
         case UART_TX_DONE:
@@ -99,40 +90,41 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             /* Check if the message fits in the fifo */
             if (evt->data.rx.len >= RXBUF_SIZE) {
                 printk("FIFO is full \n\r");
-                break;
             }
+            else {
+                /*
+                    RX timeout occurred and data is available:
+                    0. send reception confirmation
+                    1. cast message from uint8_t to char
+                    2. copy the data to the FIFO
+                    3. analyse the message (this will run in a separate thread)
+                        3.1 if the message is a command, execute it (e.g. toggle led)
+                        3.2 if the message is a request, send the response (e.g. send the value of a sensor)
+                */
 
-            /*
-                RX timeout occurred and data is available:
-                0. send reception confirmation
-                1. cast message from uint8_t to char
-                2. copy the data to the FIFO
-                3. analyse the message (this will run in a separate thread)
-                    3.1 if the message is a command, execute it (e.g. toggle led)
-                    3.2 if the message is a request, send the response (e.g. send the value of a sensor)
-            */
+                /* Convert the message from uint8_t to char */
+                memcpy(
+                    rx_chars,
+                    &(rx_buf[evt->data.rx.offset]),
+                    evt->data.rx.len
+                );
 
-            /* Convert the message from uint8_t to char */
-            char rx_chars[evt->data.rx.len];
-            memcpy(
-                rx_chars,
-                &(rx_buf[evt->data.rx.offset]),
-                evt->data.rx.len
-            );
+                /* Get reception confirmation */
+                uint8_t rep_mesg[TXBUF_SIZE]; 
+                err_code = get_ack_msg(rx_chars, rep_mesg);
 
-            /* Get reception confirmation */
-            uint8_t rep_mesg[] = get_ack_msg(rx_chars);
+                /* Send reception confirmation */
+                err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
+                if (err) {
+                    printk("uart_tx() error. Error code:%d\n\r",err);
+                }
 
-            /* Send reception confirmation */
-            err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
-            if (err) {
-                printk("uart_tx() error. Error code:%d\n\r",err);
+                /* Copy the received data to the FIFO */
+                if (err_code == 1) {
+                    fifo_push(fifo, rx_chars);
+                }
+                uart_rxbuf_nchar++;
             }
-
-            /* Copy the received data to the FIFO */
-            fifo_push(fifo, rx_chars, evt->data.rx.len);
-            uart_rxbuf_nchar++;
-
             break;
 
         case UART_RX_BUF_REQUEST:
@@ -155,8 +147,6 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             );
             if (err) {
                 printk("uart_rx_enable() error. Error code:%d\n\r",err);
-                int status = EXIT_FAILURE;
-                pthread_exit(&status);
             }
 
             break;
@@ -172,7 +162,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 }
 
 int uart_send_data(uint8_t *data) {
-    err = uart_tx(uart_dev, data, sizeof(data), SYS_FOREVER_MS);
+    int err = uart_tx(uart_dev, data, sizeof(data), SYS_FOREVER_MS);
     if (err) {
         printk("uart_tx() error. Error code:%d\n\r",err);
         return FATAL_ERR;

@@ -38,6 +38,8 @@ static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2_NODE, gpios);
 static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3_NODE, gpios);
 static const struct gpio_dt_spec leds_gpio[4] = {led0, led1, led2, led3};
 
+#define TC74_ADDR 0x4d     /* I2C slave address */
+
 #define TC74_CMD_RTR 0x00  /* Read temperature command */
 #define TC74_CMD_RWCR 0x01 /* Read/write configuration register */
 
@@ -238,25 +240,22 @@ void callback_btn0(
     const struct device *dev, struct gpio_callback *cb, const gpio_port_pins_t pins)
 {
   toggle_btn(0);
-  // set_led(0, !get_led(0));
 }
 void callback_btn1(
     const struct device *dev, struct gpio_callback *cb, const gpio_port_pins_t pins)
 {
+  printk("Button 1 pressed\n");
   toggle_btn(1);
-  // set_led(1, !get_led(1));
 }
 void callback_btn2(
     const struct device *dev, struct gpio_callback *cb, const gpio_port_pins_t pins)
 {
   toggle_btn(2);
-  // set_led(2, !get_led(2));
 }
 void callback_btn3(
     const struct device *dev, struct gpio_callback *cb, const gpio_port_pins_t pins)
 {
   toggle_btn(3);
-  // set_led(3, !get_led(3));
 }
 
 void sync_io_thread(void *, void *, void *)

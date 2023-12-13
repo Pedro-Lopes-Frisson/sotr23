@@ -2,6 +2,7 @@
 #define PROTOCOL_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define SYNC_SYMBOL '!'
 #define END_SYMBOL '#'
@@ -33,7 +34,7 @@ char* get_payload(char *msg);
 /// @brief from the message received from the PC, get the ack message to be sent to the PC
 /// @param msg - the message received from the PC
 /// @return the message to be sent to the PC
-uint8_t* get_ack_msg(char *msg);
+int get_ack_msg(char *msg, uint8_t* answer);
 
 bool payload_is_valid(char *msg, int msg_size);
 

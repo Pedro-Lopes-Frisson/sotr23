@@ -16,8 +16,9 @@
 #include "./include/rtdb.h"
 #include "./include/uart.h"
 
+#include <zephyr/sys/printk.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include <stdio.h>
 
 char valid_commands[14] = {'0', '1', '2', '3', '4', '5', '6', '7', 'A', 'B', 'C', 'D', 'E', 'Z'};
 int payload_sizes[14] = {2, 4, 0, 0, 0, 0, 0, 0, 4, 4, 3, 3, 3, 2};
@@ -89,7 +90,7 @@ char* get_payload(char *msg) {
     return payload;
 }
 
-uint8_t* get_ack_msg(char* msg) {
+int get_ack_msg(char* msg, uint8_t* answer) {
     // ACK message example: !1Z01236#
     // Format: {sync_symbol}{tx_device_id}{command_id}{payload}{checksum}{end_symbol}
     // Payload: {command_id_received}{error_code}
@@ -102,9 +103,8 @@ uint8_t* get_ack_msg(char* msg) {
     /* Get the checksum */
     int checksum = calculate_checksum(payload, 2);
 
-    uint8_t uint8_msg[TXBUF_SIZE];
-    sprint(uint8_msg, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'Z', payload, checksum, END_SYMBOL);
-    return uint8_msg;
+    sprintf(answer, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'Z', payload, checksum, END_SYMBOL);
+    return error_code == 1 ? 0 : 1;
 }
 
 // Check if the payload is valid
@@ -236,7 +236,7 @@ void read_digital_inputs() {
     // {sync_symbol}{tx_device_id}{command_id}{payload}{checksum}{end_symbol}
     // size = 1 + 1 + 1 + 4 + 3 + 1 = 11
     sprintf(rep_mesg,"%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'A', payload, checksum, END_SYMBOL);
-    if (uart_send(rep_mesg, 11) != 0) {
+    if (uart_send_data(rep_mesg) != 0) {
         printk("Error sending message\n\r");
     }
 }
@@ -266,7 +266,7 @@ void read_digital_outputs() {
     // {sync_symbol}{tx_device_id}{command_id}{payload}{checksum}{end_symbol}
     // size = 1 + 1 + 1 + 4 + 3 + 1 = 11
     sprintf(rep_mesg,"%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'B', payload, checksum, END_SYMBOL);
-    if (uart_send(rep_mesg, 11) != 0) {
+    if (uart_send_data(rep_mesg) != 0) {
         printk("Error sending message\n\r");
     }
 }
@@ -299,7 +299,7 @@ void send_temp_message(int temp, char command_id) {
     // {sync_symbol}{tx_device_id}{command_id}{payload}{checksum}{end_symbol}
     // size = 1 + 1 + 1 + 3 + 3 + 1 = 10
     sprintf(rep_mesg,"%c%c%c%s%d%c", SYNC_SYMBOL, UC, command_id, payload, checksum, END_SYMBOL);
-    if (uart_send(rep_mesg, 10) != 0) {
+    if (uart_send_data(rep_mesg) != 0) {
         printk("Error sending message\n\r");
     }
 }
@@ -307,7 +307,7 @@ void send_temp_message(int temp, char command_id) {
 void read_last_temperature() {
     // Get the last temperature from the rtdb
     uint8_t last_temperature;
-    get_temp(&last_temperature);
+    get_last_temp(&last_temperature);
 
     send_temp_message(last_temperature, 'C');
 }

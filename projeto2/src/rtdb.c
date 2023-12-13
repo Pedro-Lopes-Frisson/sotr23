@@ -1,4 +1,5 @@
-#include "include/rtdb.h"
+#include "./include/rtdb.h"
+
 #include <zephyr/kernel.h>
 
 #define EXIT_FAILURE 1
@@ -22,7 +23,7 @@ static double min_temp;
 static double max_temp;
 static int temps_saved;
 
-static void initialization(void) {
+void rtdb_initialization(void) {
   // set initial values for each array
   for (i = 0; i < 4; i++) {
     leds[i] = 0;
@@ -38,55 +39,61 @@ static void initialization(void) {
   temps_saved = 0;
 }
 
-int openDb(const char *name) {
+int open_rtdb(const char *name) {
 
 	k_mutex_lock(&accessCR, K_FOREVER);
 
   // initialize data structures
-  initialization();
+  rtdb_initialization();
 
 	k_mutex_unlock(&accessCR);
 
   return EXIT_SUCCESS;
 }
 
-int set_btn(int btn, int val) {
+void set_btn(int btn, int val) {
 	k_mutex_lock(&accessCR, K_FOREVER);
 
   btns[btn] = val;
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
-int toggle_btn(int btn) {
+void toggle_btn(int btn) {
 	k_mutex_lock(&accessCR, K_FOREVER);
 
   btns[btn] = !btns[btn];
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
-
-int set_led(int led, int val) {
+void set_led(int led, int val) {
 	k_mutex_lock(&accessCR, K_FOREVER);
 
   leds[led] = val;
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
-int set_btns(const int *b) {
+void set_btns(const int *b) {
   k_mutex_lock(&accessCR, K_FOREVER);
 
   for (i = 0; i < 4; i++) {
     btns[i] = b[i];
   }
 
-	k_mutex_unlock(&accessCR);}
-int set_leds(const int *l) {
-k_mutex_lock(&accessCR, K_FOREVER);
+	k_mutex_unlock(&accessCR);
+}
+
+void set_leds(const int *l) {
+  k_mutex_lock(&accessCR, K_FOREVER);
+
   for (i = 0; i < 4; i++) {
     leds[i] = l[i];
   }
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
 int get_led(int led) {
 	k_mutex_lock(&accessCR, K_FOREVER);
@@ -102,16 +109,16 @@ int get_btn(int btn) {
   return val;
 }
 
-
 void get_leds(int * l){
-  	k_mutex_lock(&accessCR, K_FOREVER);
-
+  k_mutex_lock(&accessCR, K_FOREVER);
 
   for(i = 0; i < 4; i++){
     l[i] = leds[i];
   }
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
+
 void get_btns(int * b){
 	k_mutex_lock(&accessCR, K_FOREVER);
 
@@ -119,10 +126,10 @@ void get_btns(int * b){
     b[i] = btns[i];
   }
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
-
-int add_temp(double temp) {
+void add_temp(uint8_t temp) {
 	k_mutex_lock(&accessCR, K_FOREVER);
   temps[idx] = temp;
   idx = (idx + 1) % 20;
@@ -143,22 +150,65 @@ int add_temp(double temp) {
 
   temps_saved++;
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
+
 /*
  * return the number of valiid temperatures that were copied to the input
  * parameter temps
  */
-int get_temps(double *t) {
+int get_temps(uint8_t *t) {
 	k_mutex_lock(&accessCR, K_FOREVER);
+  // int temps_returned = temps_saved;
+  // for (i = 0; i < temps_returned; i++) {
+  //   t[i] = temps[i];
+  // }
+
+  int index = idx;
   int temps_returned = temps_saved;
   for (i = 0; i < temps_returned; i++) {
-    t[i] = temps[i];
+    t[i] = temps[(20+index)%20];
+    index--;
   }
+
 	k_mutex_unlock(&accessCR);
   return temps_returned;
 }
 
-int reset_temps() {
+void get_last_temp(uint8_t *t) {
+  k_mutex_lock(&accessCR, K_FOREVER);
+
+  if (temps_saved == 0) {
+    *t = 0.0f;
+  }
+  else if (idx == 0)
+  {
+    *t = temps[19];
+  }  
+  else {
+    *t = temps[idx - 1];
+  }
+
+  k_mutex_unlock(&accessCR);
+}
+
+void get_max_temp(uint8_t *t) {
+  k_mutex_lock(&accessCR, K_FOREVER);
+
+  *t = max_temp;
+
+  k_mutex_unlock(&accessCR);
+}
+
+void get_min_temp(uint8_t *t) {
+  k_mutex_lock(&accessCR, K_FOREVER);
+
+  *t = min_temp;
+
+  k_mutex_unlock(&accessCR);
+}
+
+void reset_temps() {
 	k_mutex_lock(&accessCR, K_FOREVER);
 
   temps_saved = 0;
@@ -166,6 +216,7 @@ int reset_temps() {
   max_temp = 0.0f;
   idx = 0;
 
-	k_mutex_unlock(&accessCR);}
+	k_mutex_unlock(&accessCR);
+}
 
 int closeDb(void) { return EXIT_SUCCESS; }
