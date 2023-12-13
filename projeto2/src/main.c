@@ -14,7 +14,7 @@
 #define STACKSIZE 1024
 #define THREAD0_PRIORITY 7
 #define TASK1_PERIOD 1000
-#define SLEEP_TIME_MS 100
+#define SLEEP_TIME_MS 1000
 #define MAX_LEDS 4
 
 /* Button setup */
@@ -258,7 +258,7 @@ void read_temp_samples(void *, void *, void *) {
              dev_i2c.addr, TC74_CMD_RTR, ret, -EIO);
     }
 
-    // printk("Last temperature reading is %d \n\r", temp);
+    printk("Last temperature reading is %d \n\r", temp);
     add_temp(temp);
 
     /* Pause  */
