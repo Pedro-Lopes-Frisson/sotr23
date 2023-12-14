@@ -114,7 +114,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
                 err_code = get_ack_msg(rx_chars, rep_mesg, &valid_message);
                 if(err_code == -1) // no valid message was found
                 {
-
+                    break;
                 }
                 rx_chars[RXBUF_SIZE-1] = '\0';
                 printk("ECHO: %d\n", rx_chars);
@@ -126,6 +126,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Copy the received data to the FIFO */
                 if (err_code == 1) {
+                    printk("Pushing menssage to fifo\n");
                     fifo_push(fifo, valid_message);
                 }
                 uart_rxbuf_nchar++;

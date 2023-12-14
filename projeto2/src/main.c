@@ -246,7 +246,7 @@ void sync_io_thread(void *, void *, void *) {
 }
 
 void read_temp_samples(void *, void *, void *) {
-  uint8_t temp = 0; /* Temperature value (raw read from sensor)*/
+  signed char temp = 0; /* Temperature value (raw read from sensor)*/
   int ret;
   while (1) {
     /* Read temperature register */
@@ -255,10 +255,11 @@ void read_temp_samples(void *, void *, void *) {
       printk("Failed to read from I2C device at address %x, register  at Reg. "
              "%x %d --- %d\n\r",
              dev_i2c.addr, TC74_CMD_RTR, ret, -EIO);
+      continue;
     }
 
     // printk("Last temperature reading is %d \n\r", temp);
-    add_temp(temp);
+    add_temp((int)temp);
 
     /* Pause  */
     k_msleep(SLEEP_TIME_MS);

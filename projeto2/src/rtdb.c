@@ -15,11 +15,11 @@ K_MUTEX_DEFINE(accessCR);
 
 static int btns[4];
 static int leds[4];
-static unsigned int temps[20];
+static int temps[20];
 static int i;
 static int idx;
-static unsigned int min_temp;
-static unsigned int max_temp;
+static int min_temp;
+static int max_temp;
 static int temps_saved;
 
 void rtdb_initialization(void) {
@@ -33,8 +33,8 @@ void rtdb_initialization(void) {
   }
   i = 0;
   idx = 0;
-  min_temp = 0.0f;
-  max_temp = 0.0f;
+  min_temp = 0;
+  max_temp = 0;
   temps_saved = 0;
 }
 
@@ -129,7 +129,7 @@ void get_btns(int *b) {
   k_mutex_unlock(&accessCR);
 }
 
-void add_temp(uint8_t temp) {
+void add_temp(int temp) {
   k_mutex_lock(&accessCR, K_FOREVER);
   temps[idx] = temp;
   idx = (idx + 1) % 20;
@@ -154,7 +154,7 @@ void add_temp(uint8_t temp) {
  * return the number of valiid temperatures that were copied to the input
  * parameter temps
  */
-int get_temps(uint8_t *t) {
+int get_temps(int *t) {
   k_mutex_lock(&accessCR, K_FOREVER);
   // int temps_returned = temps_saved;
   // for (i = 0; i < temps_returned; i++) {
@@ -172,7 +172,7 @@ int get_temps(uint8_t *t) {
   return temps_returned;
 }
 
-void get_last_temp(uint8_t *t) {
+void get_last_temp(int *t) {
   k_mutex_lock(&accessCR, K_FOREVER);
 
   if (temps_saved == 0) {
@@ -186,7 +186,7 @@ void get_last_temp(uint8_t *t) {
   k_mutex_unlock(&accessCR);
 }
 
-void get_max_temp(uint8_t *t) {
+void get_max_temp(int *t) {
   k_mutex_lock(&accessCR, K_FOREVER);
 
   *t = max_temp;
@@ -194,7 +194,7 @@ void get_max_temp(uint8_t *t) {
   k_mutex_unlock(&accessCR);
 }
 
-void get_min_temp(uint8_t *t) {
+void get_min_temp(int *t) {
   k_mutex_lock(&accessCR, K_FOREVER);
 
   *t = min_temp;

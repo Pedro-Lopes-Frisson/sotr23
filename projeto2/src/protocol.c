@@ -118,7 +118,7 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
   if (end_symbol_idx == -1 || sync_symbol_idx == -1 ||
       (sync_symbol_idx > end_symbol_idx)) {
     printk("Did not find valid sync and end symbols\n");
-    error_code = 4; // did not find symbols
+    error_code = 4; // invalid frame structure
   }
   printk("Sync symbol at %d, end symbol at %d \n", sync_symbol_idx,
          end_symbol_idx);
@@ -132,7 +132,7 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
   printk("ECHO Valid Message: %s\n", valid_message);
   /* Get the error code */
   if (error_code != 4) {
-    msg_is_valid(valid_message);
+    error_code = msg_is_valid(valid_message);
   }
 
   char payload[3] = {msg[2], error_code + '0', '\0'};
@@ -142,7 +142,8 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
 
   sprintf(answer, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'Z', payload, checksum,
           END_SYMBOL);
-  return error_code == 1 ? 0 : 1;
+  printk("ERROR CODE : %d\n", error_code);
+  return error_code;
 }
 
 // Check if the payload is valid
@@ -154,6 +155,7 @@ bool payload_is_valid(char *msg, int msg_size) {
   // Check if the payload has the right length
   char command_id = msg[2];
   int payload_size = 0;
+  printk("msg_size:    %d\n", msg_size);
   for (int i = 0; i < 14; i++) {
     if (command_id == valid_commands[i]) {
       payload_size = payload_sizes[i];
@@ -309,6 +311,8 @@ void read_digital_outputs() {
   // size = 1 + 1 + 1 + 4 + 3 + 1 = 11
   sprintf(rep_mesg, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'B', payload, checksum,
           END_SYMBOL);
+  printk("| %c%c%c%s%d%c\n", SYNC_SYMBOL, UC, 'B', payload, checksum,
+         END_SYMBOL);
   if (uart_send_data(rep_mesg) != 0) {
     printk("Error sending message\n\r");
   }
@@ -333,7 +337,7 @@ void send_temp_message(int temp, char command_id) {
   int temperature = (int)temp;
   payload[1] = (temperature / 10) + '0';
   payload[2] = (temperature % 10) + '0';
-  payload[4] = '\0';
+  payload[3] = '\0';
   // Get the checksum
   int checksum = calculate_checksum(payload, 3);
 
@@ -352,29 +356,80 @@ void send_temp_message(int temp, char command_id) {
 
 void read_last_temperature() {
   // Get the last temperature from the rtdb
-  uint8_t last_temperature;
+  int last_temperature;
   get_last_temp(&last_temperature);
 
   send_temp_message(last_temperature, 'C');
 }
 
-void read_all_last_temperatures() {
-  uint8_t last_temperatures[20];
-  int n_temps = get_temps(last_temperatures);
+void temp_to_string(int temperature, int offset, char *payload) {
+  // Get the signal
+  if (temperature >= 0) {
+    payload[offset + 0] = '+';
+  } else {
+    payload[offset + 0] = '-';
+  }
 
+  // Get the temperature
+  payload[offset + 1] = (temperature / 10) + '0';
+  payload[offset + 2] = (temperature % 10) + '0';
+}
+
+void read_all_last_temperatures() {
+  int last_temperatures[20];
+  int n_temps = get_temps(last_temperatures);
+  char *payload =
+      (char *)k_malloc(3 * sizeof(char) * n_temps +
+                       sizeof(char)); // allocate enough characters to represent
+  // n_temps in 3 characters : {‘+’,’-’} +
+  // {‘0’...’9’} + {‘0’...’9’} + 1 for '\0'
+  if (payload == NULL) {
+    return;
+  }
   for (int i = 0; i < n_temps; i++) {
-    send_temp_message(last_temperatures[i], 'D');
+    temp_to_string(last_temperatures[i], i * 3, payload);
+  }
+
+  payload[3 * sizeof(char) * n_temps] = '\0'; // ends the string
+  int checksum =
+      calculate_checksum(payload, 3 * sizeof(char) * n_temps + sizeof(char));
+  uint8_t rep_mesg[TXBUF_SIZE];
+
+  sprintf(rep_mesg, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'D', payload, checksum,
+          END_SYMBOL);
+  printk("Temperature: %c%c%c%s%d%c\n", SYNC_SYMBOL, UC, 'D', payload, checksum,
+         END_SYMBOL);
+  if (uart_send_data(rep_mesg) != 0) {
+    printk("Error sending message\n\r");
   }
 }
 
 void read_min_max_temp() {
   uint8_t max_temperature;
   get_max_temp(&max_temperature);
-
-  send_temp_message(max_temperature, 'E');
-
   uint8_t min_temperature;
   get_min_temp(&min_temperature);
+  char *payload =
+      (char *)k_malloc(3 * sizeof(char) * 2 +
+                       sizeof(char)); // allocate enough characters to represent
+  // n_temps in 3 characters : {‘+’,’-’} +
+  // {‘0’...’9’} + {‘0’...’9’} + 1 for '\0'
+  if (payload == NULL) {
+    return;
+  }
+  temp_to_string(max_temperature, 0 * 3, payload);
+  temp_to_string(min_temperature, 1 * 3, payload);
 
-  send_temp_message(min_temperature, 'E');
+  payload[3 * sizeof(char) * 2] = '\0'; // ends the string
+  int checksum =
+      calculate_checksum(payload, 3 * sizeof(char) * 2 + sizeof(char));
+  uint8_t rep_mesg[TXBUF_SIZE];
+
+  sprintf(rep_mesg, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'E', payload, checksum,
+          END_SYMBOL);
+  printk("Temperature: %c%c%c%s%d%c\n", SYNC_SYMBOL, UC, 'E', payload, checksum,
+         END_SYMBOL);
+  if (uart_send_data(rep_mesg) != 0) {
+    printk("Error sending message\n\r");
+  }
 }
