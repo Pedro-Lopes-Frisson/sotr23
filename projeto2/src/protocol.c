@@ -88,11 +88,10 @@ char *get_payload(char *msg) {
   int msg_size = 0;
   for (msg_size = 0; msg[msg_size] != '\0'; msg_size++)
     ;
-  printk("Size %d\n", msg_size);
+
   char *payload = (char *)k_malloc(msg_size - (3 + 4));
   for (int i = 3, j = 0; i < msg_size - 4; i++, j++) {
     payload[j] = msg[i];
-    printk("MSG_PALOAD %c\n", msg[i]);
   }
 
   return payload;
@@ -117,11 +116,8 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
   }
   if (end_symbol_idx == -1 || sync_symbol_idx == -1 ||
       (sync_symbol_idx > end_symbol_idx)) {
-    printk("Did not find valid sync and end symbols\n");
     error_code = 4; // invalid frame structure
   }
-  printk("Sync symbol at %d, end symbol at %d \n", sync_symbol_idx,
-         end_symbol_idx);
 
   int j = 0;
   for (int i = sync_symbol_idx; i <= end_symbol_idx; i++) {
@@ -129,7 +125,6 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
     j++;
   }
   valid_message[j] = '\0';
-  printk("ECHO Valid Message: %s\n", valid_message);
   /* Get the error code */
   if (error_code != 4) {
     error_code = msg_is_valid(valid_message);
@@ -142,7 +137,6 @@ int get_ack_msg(char *msg, uint8_t *answer, char *valid_message) {
 
   sprintf(answer, "%c%c%c%s%d%c", SYNC_SYMBOL, UC, 'Z', payload, checksum,
           END_SYMBOL);
-  printk("ERROR CODE : %d\n", error_code);
   return error_code;
 }
 
@@ -388,7 +382,6 @@ void read_all_last_temperatures() {
   }
   for (int i = 0; i < n_temps; i++) {
     temp_to_string(last_temperatures[i], i * 3, payload);
-    printk("\ni: %d\n", i);
   }
 
   payload[3 * sizeof(char) * n_temps] = '\0'; // ends the string

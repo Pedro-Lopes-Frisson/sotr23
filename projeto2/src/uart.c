@@ -81,11 +81,9 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             break;
 
         case UART_TX_ABORTED:
-            printk("UART_TX_ABORTED event \n\r");
             break;
 
         case UART_RX_RDY:
-            printk("UART_RX_RDY event \n\r");
 
             /* Check if the message fits in the fifo */
             if (evt->data.rx.len >= RXBUF_SIZE) {
@@ -117,7 +115,6 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
                     break;
                 }
                 rx_chars[RXBUF_SIZE-1] = '\0';
-                printk("ECHO: %d\n", rx_chars);
                 /* Send reception confirmation */
                 err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
                 if (err) {
@@ -126,7 +123,6 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Copy the received data to the FIFO */
                 if (err_code == 1) {
-                    printk("Pushing menssage to fifo\n");
                     fifo_push(fifo, valid_message);
                 }
                 uart_rxbuf_nchar++;
@@ -134,11 +130,9 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             break;
 
         case UART_RX_BUF_REQUEST:
-            printk("UART_RX_BUF_REQUEST event \n\r");
             break;
 
         case UART_RX_BUF_RELEASED:
-            printk("UART_RX_BUF_RELEASED event \n\r");
             break;
         
         case UART_RX_DISABLED:
@@ -158,11 +152,9 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             break;
 
         case UART_RX_STOPPED:
-            printk("UART_RX_STOPPED event \n\r");
             break;
 
         default:
-            printk("Unknown UART event type \n\r");
             break;
     }
 }

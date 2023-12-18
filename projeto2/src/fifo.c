@@ -51,7 +51,6 @@ int fifo_pop(struct FIFO *fifo, char * data) {
     // printk("FIFO is empty\n");
     return 1;
   }
-  printk("_is_empty() = %d\n", _is_empty(fifo));
   // Allocate memory for data
   if (data == NULL) {
     printk("Data is an invalid pointer\n");

@@ -89,7 +89,6 @@ void set_leds(const int *l) {
 
   for (i = 0; i < 4; i++) {
     leds[i] = l[i];
-    printk("%d -> %d\n", i, leds[i]);
   }
 
   k_mutex_unlock(&accessCR);
