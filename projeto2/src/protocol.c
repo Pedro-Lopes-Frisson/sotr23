@@ -388,6 +388,7 @@ void read_all_last_temperatures() {
   }
   for (int i = 0; i < n_temps; i++) {
     temp_to_string(last_temperatures[i], i * 3, payload);
+    printk("\ni: %d\n", i);
   }
 
   payload[3 * sizeof(char) * n_temps] = '\0'; // ends the string

@@ -146,6 +146,9 @@ void add_temp(int temp) {
   }
 
   temps_saved++;
+  if (temps_saved >= 20){
+    temps_saved = 20;
+  }
 
   k_mutex_unlock(&accessCR);
 }
