@@ -2,7 +2,6 @@
 #include "./include/protocol.h"
 
 #include <zephyr/sys/printk.h>
-#include <pthread.h>                /* for pthread_mutex_t */
 #include <stdio.h>
 #include <string.h>
 
@@ -71,25 +70,24 @@ int uart_initialization(void) {
 }
 
 void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *user_data) {
-    char rx_chars[evt->data.rx.len];    /* Received message */
+    char rx_chars[RXBUF_SIZE];    /* Received message */
     int err, err_code;
-
+    int msg_size = 0;
+    char valid_message[60];
     switch (evt->type) {
 
         case UART_TX_DONE:
-            printk("UART_TX_DONE event \n\r");
+            printk("\nUART_TX_DONE event \n\r");
             break;
 
         case UART_TX_ABORTED:
-            printk("UART_TX_ABORTED event \n\r");
             break;
 
         case UART_RX_RDY:
-            printk("UART_RX_RDY event \n\r");
 
             /* Check if the message fits in the fifo */
             if (evt->data.rx.len >= RXBUF_SIZE) {
-                printk("FIFO is full \n\r");
+                printk("UART Buffer is full \n\r");
             }
             else {
                 /*
@@ -111,8 +109,12 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Get reception confirmation */
                 uint8_t rep_mesg[TXBUF_SIZE]; 
-                err_code = get_ack_msg(rx_chars, rep_mesg);
-
+                err_code = get_ack_msg(rx_chars, rep_mesg, &valid_message);
+                if(err_code == -1) // no valid message was found
+                {
+                    break;
+                }
+                rx_chars[RXBUF_SIZE-1] = '\0';
                 /* Send reception confirmation */
                 err = uart_tx(uart_dev, rep_mesg, sizeof(rep_mesg), SYS_FOREVER_MS);
                 if (err) {
@@ -121,18 +123,16 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
 
                 /* Copy the received data to the FIFO */
                 if (err_code == 1) {
-                    fifo_push(fifo, rx_chars);
+                    fifo_push(fifo, valid_message);
                 }
                 uart_rxbuf_nchar++;
             }
             break;
 
         case UART_RX_BUF_REQUEST:
-            printk("UART_RX_BUF_REQUEST event \n\r");
             break;
 
         case UART_RX_BUF_RELEASED:
-            printk("UART_RX_BUF_RELEASED event \n\r");
             break;
         
         case UART_RX_DISABLED:
@@ -152,11 +152,9 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
             break;
 
         case UART_RX_STOPPED:
-            printk("UART_RX_STOPPED event \n\r");
             break;
 
         default:
-            printk("Unknown UART event type \n\r");
             break;
     }
 }
