@@ -12,7 +12,9 @@
 #include "./include/uart.h"
 
 #define STACKSIZE 1024
-#define THREAD0_PRIORITY 7
+#define SYNC_PRIORITY 4
+#define UART_PRIORITY 3
+#define SAMPLING_PRIORITY 7
 #define TASK1_PERIOD 1000
 #define SLEEP_TIME_MS 1000
 #define MAX_LEDS 4
@@ -154,21 +156,21 @@ int main(void) {
       K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
       sync_io_thread,      /* Pointer to code, i.e. the function name */
       NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      SYNC_PRIORITY, 0, /* Thread options. Arch dependent */
       K_NO_WAIT);
   thds_ids[1] = k_thread_create(
       &thds[1], temp_sampling_stack_area,
       K_THREAD_STACK_SIZEOF(temp_sampling_stack_area),
       read_temp_samples,   /* Pointer to code, i.e. the function name */
       NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      SAMPLING_PRIORITY, 0, /* Thread options. Arch dependent */
       K_NO_WAIT);
   thds_ids[2] = k_thread_create(
       &thds[2], process_messages_stack_area,
       K_THREAD_STACK_SIZEOF(process_messages_stack_area),
       process_message,     /* Pointer to code, i.e. the function name */
       NULL, NULL, NULL,    /* Three optional arguments */
-      THREAD0_PRIORITY, 0, /* Thread options. Arch dependent */
+      UART_PRIORITY, 0, /* Thread options. Arch dependent */
       K_NO_WAIT);
   while (1) {
     for (int i = 0; i < 2; i++) {
@@ -272,10 +274,9 @@ void process_message(void *, void *, void *) {
   char msg_char[60];
   while (1) {
     if (fifo_pop(fifo, &msg_char) != 0) {
-      k_msleep(5000);
     } else {
-      printk("MSG To Analyse: %s\n\n", msg_char);
       analyse_msg(msg_char);
     }
+      k_msleep(5000);
   }
 }

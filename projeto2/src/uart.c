@@ -77,7 +77,7 @@ void uart_rx_callback(const struct device *dev, struct uart_event *evt, void *us
     switch (evt->type) {
 
         case UART_TX_DONE:
-            printk("UART_TX_DONE event \n\r");
+            printk("\nUART_TX_DONE event \n\r");
             break;
 
         case UART_TX_ABORTED:
