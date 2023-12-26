@@ -6,6 +6,8 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys_clock.h>
 
+#include <zephyr/timing/timing.h>
+
 #include "./include/fifo.h"
 #include "./include/protocol.h"
 #include "./include/rtdb.h"
@@ -150,28 +152,35 @@ int main(void) {
   }
   uart_initialization();
 
+  timing_init();
+  timing_start();
+
   /* Create threads */
   thds_ids[0] = k_thread_create(
       &thds[0], sync_io_thread_stack_area,
       K_THREAD_STACK_SIZEOF(sync_io_thread_stack_area),
-      sync_io_thread,      /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
+      sync_io_thread,   /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL, /* Three optional arguments */
       SYNC_PRIORITY, 0, /* Thread options. Arch dependent */
-      K_NO_WAIT);
+      K_FOREVER);
   thds_ids[1] = k_thread_create(
       &thds[1], temp_sampling_stack_area,
       K_THREAD_STACK_SIZEOF(temp_sampling_stack_area),
-      read_temp_samples,   /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
+      read_temp_samples,    /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL,     /* Three optional arguments */
       SAMPLING_PRIORITY, 0, /* Thread options. Arch dependent */
       K_NO_WAIT);
   thds_ids[2] = k_thread_create(
       &thds[2], process_messages_stack_area,
       K_THREAD_STACK_SIZEOF(process_messages_stack_area),
-      process_message,     /* Pointer to code, i.e. the function name */
-      NULL, NULL, NULL,    /* Three optional arguments */
+      process_message,  /* Pointer to code, i.e. the function name */
+      NULL, NULL, NULL, /* Three optional arguments */
       UART_PRIORITY, 0, /* Thread options. Arch dependent */
-      K_NO_WAIT);
+      K_FOREVER);
+  k_thread_name_set(thds_ids[0], "Sync");
+  k_thread_name_set(thds_ids[1], "Sample");
+  k_thread_name_set(thds_ids[2], "Process");
+
   while (1) {
     for (int i = 0; i < 2; i++) {
       k_thread_join(&thds[i], K_MSEC(1000));
@@ -179,6 +188,7 @@ int main(void) {
   }
 
   return 0;
+  printk("Died\n");
 }
 
 /* CHECK IF THE DEVICES ARE READY */
@@ -236,12 +246,23 @@ void callback_btn3(const struct device *dev, struct gpio_callback *cb,
 void sync_io_thread(void *, void *, void *) {
   int leds_values[4] = {0, 0, 0, 0};
   int i = 0;
+  timing_t start_time, end_time;
+  uint64_t total_cycles;
+  uint64_t total_ns;
+
   while (1) {
+    start_time = timing_counter_get();
     get_leds(leds_values);
     for (i = 0; i < MAX_LEDS; i++) {
       gpio_pin_set_dt(&(leds_gpio[i]), leds_values[i]);
       // printk("Setting led %d -> %d\n", i, leds_values[i]);
     }
+
+    end_time = timing_counter_get();
+
+    total_cycles = timing_cycles_get(&start_time, &end_time);
+    total_ns = timing_cycles_to_ns(total_cycles);
+    printk("\n%s execution time %llu ns\n", "Sync", total_ns);
 
     k_msleep(1000);
   }
@@ -250,8 +271,12 @@ void sync_io_thread(void *, void *, void *) {
 void read_temp_samples(void *, void *, void *) {
   signed char temp = 0; /* Temperature value (raw read from sensor)*/
   int ret;
+  timing_t start_time, end_time;
+  uint64_t total_cycles;
+  uint64_t total_ns;
   while (1) {
     /* Read temperature register */
+    start_time = timing_counter_get();
     ret = i2c_read_dt(&dev_i2c, &temp, sizeof(temp));
     if (ret != 0) {
       printk("Failed to read from I2C device at address %x, register  at Reg. "
@@ -260,23 +285,44 @@ void read_temp_samples(void *, void *, void *) {
       continue;
     }
 
-    // printk("Last temperature reading is %d \n\r", temp);
+    // printk("Last temperature reading is %c \n\r", temp);
     add_temp((int)temp);
+
+    end_time = timing_counter_get();
+
+    total_cycles = timing_cycles_get(&start_time, &end_time);
+    total_ns = timing_cycles_to_ns(total_cycles);
+    printk("\n%s execution time %llu ns\n", "Sample", total_ns);
 
     /* Pause  */
     k_msleep(SLEEP_TIME_MS);
   }
+  timer_stop();
 }
 
 void process_message(void *, void *, void *) {
 
   struct FIFO *fifo = get_fifo();
   char msg_char[60];
+  timing_t start_time, end_time;
+  uint64_t total_cycles;
+  uint64_t total_ns;
+
+
   while (1) {
+    start_time = timing_counter_get();
     if (fifo_pop(fifo, &msg_char) != 0) {
+      continue;
     } else {
       analyse_msg(msg_char);
     }
-      k_msleep(5000);
+
+    end_time = timing_counter_get();
+
+    total_cycles = timing_cycles_get(&start_time, &end_time);
+    total_ns = timing_cycles_to_ns(total_cycles);
+    printk("%s execution time %llu ns\n", "Process", total_ns);
+
+    k_msleep(5000);
   }
 }
